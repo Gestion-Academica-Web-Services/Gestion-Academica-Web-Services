@@ -1,0 +1,180 @@
+# '[HU-CURSOS-08] Consultar grupos y cupos disponibles'
+
+- **Módulo:** MOD-03 — Gestión de Cursos
+- **Submódulo:** SUB-09 — Programación y Horarios
+- **Funcionalidad:** FUN-042 — Consultar grupos
+- **API relacionada:** API-INT-07 — Consultar cupos disponibles
+
+## 📖 Historia de Usuario
+
+- **Dado** que un estudiante o funcionario realiza la selección de horarios para una asignatura específica,
+- **Para** verificar la cantidad de cupos disponibles y el docente asignado antes de intentar registrar un grupo,
+- **Que** el sistema consulte en tiempo real la disponibilidad de cupos y detalles de programación del grupo seleccionado.
+
+## 🔁 Flujo Esperado
+
+- El usuario selecciona un grupo dentro de la oferta de horarios para un curso determinado.
+- El cliente web consume el endpoint GET `/api/grupos/{grupoId}/cupos`.
+- El backend consulta el registro del grupo en la base de datos de cursos y calcula los cupos disponibles restando los matriculados a la capacidad máxima.
+- Se responde con el balance de cupos totales, ocupados, vacantes y el docente a cargo en formato JSON.
+
+## ✅ Criterios de Aceptación
+
+### 1. 🔍 Estructura y lógica del servicio
+
+- [ ] Se expone un endpoint GET que recibe como parámetro el identificador del grupo.
+- [ ] Se valida que el grupo exista en la programación del periodo académico en curso.
+- [ ] Se realiza el cálculo aritmético exacto de cupos disponibles (`cupos_totales` - `cupos_ocupados`).
+
+### 2. 📆 Estructura de la información
+
+- [ ] Se responde con la siguiente estructura en JSON:
+
+```json
+{
+  "message": "Consulta de cupos de grupo exitosa",
+  "data": {
+    "grupo_id": "GRP-WS-A",
+    "curso_id": "CURS-WS-501",
+    "cupos_totales": 30,
+    "cupos_ocupados": 22,
+    "cupos_disponibles": 8,
+    "jornada": "DIURNA",
+    "docente": "Edward Villamizar"
+  },
+  "success": true
+}
+```
+
+- [ ] Si el grupo no tiene cupos disponibles o no existe, el backend retorna:
+
+```json
+{
+  "mensaje": "No se encontraron cupos disponibles para el grupo especificado",
+  "data": {
+    "grupo_id": "GRP-WS-A",
+    "cupos_disponibles": 0
+  },
+  "success": false
+}
+```
+
+## 🔧 Notas Técnicas
+
+## 🚀 Endpoint – Consulta de Cupos por Grupo
+
+- **Método HTTP:** `GET`
+- **Ruta:** `/api/grupos/{grupoId}/cupos`
+
+## 📤 Ejemplo de Respuesta JSON
+
+```json
+{
+  "mensaje": "Consulta de cupos de grupo exitosa",
+  "data": {
+    "grupo_id": "GRP-WS-A",
+    "curso_id": "CURS-WS-501",
+    "cupos_totales": 30,
+    "cupos_ocupados": 22,
+    "cupos_disponibles": 8,
+    "jornada": "DIURNA",
+    "docente": "Edward Villamizar"
+  },
+  "success": true
+}
+```
+
+- [ ] Si el grupo no tiene cupos disponibles o no existe, el backend retorna:
+
+```json
+{
+  "mensaje": "No se encontraron cupos disponibles para el grupo especificado",
+  "data": {
+    "grupo_id": "GRP-WS-A",
+    "cupos_disponibles": 0
+  },
+  "success": false
+}
+```
+
+## 🧪 Requisitos de Pruebas
+
+## 🔍 Casos de Prueba Funcional
+
+### ✅ Caso 1: Consulta de grupo con cupos libres
+
+- **Precondición:** El grupo 'GRP-WS-A' tiene 30 cupos totales y 22 inscritos.
+- **Acción:** Ejecutar el endpoint GET `/api/grupos/GRP-WS-A/cupos`.
+- **Resultado esperado:**
+  - Código HTTP 200 OK
+  - Campo `cupos_disponibles` es igual a `8`
+  - Campo `docente` es `"Edward Villamizar"`
+  - Campo `success` es `true`
+
+### ✅ Caso 2: Grupo con cupo agotado (lleno)
+
+- **Precondición:** El grupo 'GRP-WS-B' tiene 30 cupos totales y 30 inscritos.
+- **Acción:** Ejecutar el endpoint GET `/api/grupos/GRP-WS-B/cupos`.
+- **Resultado esperado:**
+  - Código HTTP 200 OK
+  - Campo `cupos_disponibles` es igual a `0`
+  - Campo `mensaje` contiene: "No se encontraron cupos disponibles para el grupo especificado"
+  - Campo `success` es `false`
+
+### ✅ Caso 3: Integridad de tipos en la respuesta de cupos
+
+- **Precondición:** Ejecución exitosa de la consulta.
+- **Resultado esperado:** La respuesta JSON debe contener exactamente:
+  - "grupo_id" (texto)
+  - "cupos_totales" (número entero)
+  - "cupos_ocupados" (número entero)
+  - "cupos_disponibles" (número entero)
+  - "mensaje" (texto)
+
+### ❌ Caso 4: Identificador de grupo no registrado o inválido
+
+- **Precondición:** El cliente envía un código de grupo no existente en la oferta.
+- **Acción:** Ejecutar el endpoint GET `/api/grupos/GRP-INEXISTENTE/cupos`.
+- **Resultado esperado:**
+  - Código HTTP 404 Not Found
+  - Campo `mensaje` contiene: "El grupo especificado no existe en la programación académica"
+  - Campo `success` es `false`
+
+### ❌ Caso 5: Error en el servicio de programación de grupos
+
+- **Precondición:** Interrupción en la base de datos de horarios y grupos.
+- **Acción:** Ejecutar el endpoint simulando falla del servicio.
+- **Resultado esperado:**
+  - Código HTTP 503 Service Unavailable
+  - Campo `mensaje` contiene: "No fue posible consultar los cupos del grupo"
+  - Campo `success` es `false`
+
+## ✅ Definición de Hecho
+
+# Historia: Consultar grupos y cupos disponibles
+
+## 📦 Alcance Funcional
+
+- [ ] El endpoint entrega con exactitud los cupos calculados en tiempo real.
+- [ ] La respuesta refleja adecuadamente los estados de grupo con cupo y sin cupo.
+- [ ] El contrato JSON coincide plenamente con la especificación de Web Services.
+
+## 🧪 Pruebas Completadas
+
+- [ ] Se ejecutaron pruebas unitarias para calcular la resta de cupos disponibles.
+- [ ] Se cubrieron casos de cupo en cero, cupo total disponible y grupos no encontrados.
+- [ ] Las pruebas funcionales están documentadas y pasadas.
+
+## 📄 Documentación Técnica
+
+- [ ] Endpoint documentado en Swagger / OpenAPI.
+- [ ] Se describe:
+  - Propósito del endpoint
+  - Campos de entrada y salida
+  - Ejemplo de respuesta exitosa
+  - Ejemplo de error  
+
+## 🔐 Manejo de Errores
+
+- [ ] Se devuelve código HTTP 500 o 503 ante fallos de conexión a la base de datos.
+- [ ] El campo `mensaje` en el JSON incluye un texto amigable y claro para el usuario técnico o frontend.
