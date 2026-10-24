@@ -1,0 +1,171 @@
+# '[HU-USUARIO-09] Autenticar usuario'
+
+- **Módulo:** MOD-01 — Gestión de Usuarios
+- **Submódulo:** SUB-03 — Seguridad y Acceso
+- **Funcionalidad:** FUN-011 — Autenticar
+- **API relacionada:** API-INT-21 — Gestión de autenticación y acceso
+
+## 📖 Historia de Usuario
+
+- **Dado** que un usuario registrado (estudiante, docente o administrador) se encuentra en la pantalla de inicio de sesión de la plataforma,
+- **Para** acceder de manera segura a sus módulos asignados y ejecutar las operaciones correspondientes a su rol institucional,
+- **Que** el sistema valide sus credenciales de acceso y emita un token seguro de sesión con los permisos asociados.
+
+## 🔁 Flujo Esperado
+
+- El usuario ingresa su correo institucional y su contraseña cifrada en la interfaz web de autenticación.
+- El cliente web envía una petición HTTP POST al servicio `/api/autenticacion/login` con el cuerpo de las credenciales.
+- El backend consulta el repositorio de usuarios, verifica que la cuenta se encuentre activa y valida el hash de la contraseña.
+- Se genera un token de acceso estructurado que contiene el identificador de usuario, rol y fecha de expiración, retornándolo al cliente.
+
+## ✅ Criterios de Aceptación
+
+### 1. 🔍 Estructura y lógica del servicio
+
+- [ ] Se expone un endpoint POST que recibe las credenciales en formato JSON.
+- [ ] Se verifica que el usuario exista, tenga estado ACTIVO y la contraseña coincida con el hash almacenado.
+- [ ] Se genera un token de sesión seguro con vigencia delimitada para el consumo de los demás servicios del sistema.
+
+### 2. 📆 Estructura de la información
+
+- [ ] Se responde con la siguiente estructura en JSON:
+
+```json
+{
+  "message": "Autenticación exitosa",
+  "data": {
+    "usuario_id": 101,
+    "correo": "carlos.perez@uts.edu.co",
+    "rol": "ESTUDIANTE",
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEwMSwicm9sIjoiRVNUVURJQU5URSJ9.dGhpcy1pcy1hLXNhbXBsZS1qd3QtdG9rZW4",
+    "expiracion": "2026-10-24T18:00:00Z"
+  },
+  "success": true
+}
+```
+
+- [ ] Si las credenciales son incorrectas o el usuario no existe, el backend retorna:
+
+```json
+{
+  "mensaje": "Credenciales de acceso incorrectas o usuario inactivo",
+  "data": null,
+  "success": false
+}
+```
+
+## 🔧 Notas Técnicas
+
+## 🚀 Endpoint – Autenticación de Usuario e Inicio de Sesión
+
+- **Método HTTP:** `POST`
+- **Ruta:** `/api/autenticacion/login`
+
+## 📤 Ejemplo de Respuesta JSON
+
+```json
+{
+  "mensaje": "Autenticación exitosa",
+  "data": {
+    "usuario_id": 101,
+    "correo": "carlos.perez@uts.edu.co",
+    "rol": "ESTUDIANTE",
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEwMSwicm9sIjoiRVNUVURJQU5URSJ9.dGhpcy1pcy1hLXNhbXBsZS1qd3QtdG9rZW4",
+    "expiracion": "2026-10-24T18:00:00Z"
+  },
+  "success": true
+}
+```
+
+- [ ] Si las credenciales son incorrectas o el usuario no existe, el backend retorna:
+
+```json
+{
+  "mensaje": "Credenciales de acceso incorrectas o usuario inactivo",
+  "data": null,
+  "success": false
+}
+```
+
+## 🧪 Requisitos de Pruebas
+
+## 🔍 Casos de Prueba Funcional
+
+### ✅ Caso 1: Autenticación exitosa con credenciales correctas
+
+- **Precondición:** El usuario existe en la base de datos con estado ACTIVO y la contraseña suministrada coincide.
+- **Acción:** Ejecutar el endpoint POST `/api/autenticacion/login` con payload que contiene correo y clave válida.
+- **Resultado esperado:**
+  - Código HTTP 200 OK
+  - Campo `token` no es nulo y cuenta con formato de token seguro
+  - Campo `rol` corresponde al rol asignado en la institución
+  - Campo `success` es `true`
+
+### ✅ Caso 2: Intento de acceso con contraseña incorrecta
+
+- **Precondición:** El usuario existe pero la contraseña enviada no coincide con el registro.
+- **Acción:** Ejecutar el endpoint POST `/api/autenticacion/login` con contraseña errónea.
+- **Resultado esperado:**
+  - Código HTTP 401 Unauthorized
+  - Campo `mensaje` contiene: "Credenciales de acceso incorrectas o usuario inactivo"
+  - Campo `data` es `null`
+  - Campo `success` es `false`
+
+### ✅ Caso 3: Estructura de carga útil y campos del token
+
+- **Precondición:** Ejecución exitosa de la autenticación.
+- **Resultado esperado:** La respuesta JSON debe contener exactamente los campos:
+  - "usuario_id" (número entero)
+  - "correo" (texto)
+  - "rol" (texto)
+  - "token" (texto)
+  - "expiracion" (texto con formato ISO 8601)
+  - "success" (booleano)
+
+### ❌ Caso 4: Petición con cuerpo vacío o campos requeridos omitidos
+
+- **Precondición:** El cliente envía una petición POST sin el campo obligatorio `correo` o `password`.
+- **Acción:** Ejecutar el endpoint POST `/api/autenticacion/login` con JSON `{ "correo": "carlos.perez@uts.edu.co" }`.
+- **Resultado esperado:**
+  - Código HTTP 400 Bad Request
+  - Campo `mensaje` contiene: "El correo electrónico y la contraseña son obligatorios"
+  - Campo `success` es `false`
+
+### ❌ Caso 5: Falla en el servicio de tokens o persistencia de usuarios
+
+- **Precondición:** El proveedor de almacenamiento o módulo criptográfico no responde.
+- **Acción:** Ejecutar el endpoint simulando indisponibilidad del servicio de seguridad.
+- **Resultado esperado:**
+  - Código HTTP 503 Service Unavailable
+  - Campo `mensaje` contiene: "Servicio de autenticación no disponible temporalmente"
+  - Campo `success` es `false`
+
+## ✅ Definición de Hecho
+
+# Historia: Autenticar usuario
+
+## 📦 Alcance Funcional
+
+- [ ] El endpoint valida credenciales y entrega el token de sesión en caso de éxito.
+- [ ] No se almacena ni retorna la contraseña en texto plano en ningún punto de la transacción.
+- [ ] La estructura de respuesta cumple con la especificación de seguridad definida.
+
+## 🧪 Pruebas Completadas
+
+- [ ] Se ejecutaron pruebas unitarias para el algoritmo de verificación de hash y generación de token.
+- [ ] Se cubrieron casos de cuentas inactivas, contraseñas erradas y formatos de correo incorrectos.
+- [ ] Las pruebas funcionales están documentadas y aprobadas.
+
+## 📄 Documentación Técnica
+
+- [ ] Endpoint documentado en Swagger / OpenAPI.
+- [ ] Se describe:
+  - Propósito del endpoint
+  - Campos de entrada y salida
+  - Ejemplo de respuesta exitosa
+  - Ejemplo de error  
+
+## 🔐 Manejo de Errores
+
+- [ ] Se devuelve código HTTP 500 o 503 cuando ocurre un error interno en la emisión de credenciales.
+- [ ] El campo `mensaje` en el JSON incluye un texto amigable y claro para el usuario técnico o frontend.
