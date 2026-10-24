@@ -1,0 +1,175 @@
+# [HU-ACADEMICO-02] Consultar programa académico
+
+- **Módulo:** MOD-02 — Gestión Académica
+- **Submódulo:** SUB-04 — Programas Académicos
+- **Funcionalidad:** FUN-017 — Consultar programa
+- **API relacionada:** API-INT-04 — Consultar programa académico
+
+## 📖 Historia de Usuario
+
+- **Dado** que un estudiante, aspirante o funcionario ingresa al módulo de oferta institucional y selecciona un programa,
+- **Para** conocer la información general, título otorgado, total de créditos y duración semestral del programa de su interés,
+- **Que** el sistema consulte la información detallada del programa académico mediante su identificador y la retorne en pantalla.
+
+## 🔁 Flujo Esperado
+
+- El usuario selecciona un programa académico del catálogo institucional desde la interfaz web.
+- El sistema frontend realiza una petición GET al endpoint `/api/programas-academicos/{programaId}`.
+- El backend busca el identificador del programa en la base de datos de programas académicos.
+- Se recuperan los atributos consolidados del programa (código, nombre, nivel de formación, créditos y vigencia) y se retornan en formato JSON.
+
+## ✅ Criterios de Aceptación
+
+### 1. 🔍 Estructura y lógica del servicio
+
+- [ ] Se expone un endpoint GET que recibe como parámetro de ruta el identificador del programa académico.
+- [ ] Se valida que el identificador corresponda a un programa registrado en el sistema.
+- [ ] Se retorna únicamente la información de programas con estado configurado en el catálogo.
+
+### 2. 📆 Estructura de la información
+
+- [ ] Se responde con la siguiente estructura en JSON:
+
+```json
+{
+  "message": "Consulta de programa académico exitosa",
+  "data": {
+    "programa_id": "PROG-ING-01",
+    "nombre_programa": "Ingeniería de Sistemas",
+    "nivel_formacion": "Profesional",
+    "total_creditos": 160,
+    "duracion_semestres": 10,
+    "estado": "ACTIVO"
+  },
+  "success": true
+}
+```
+
+- [ ] Si el programa no existe en los registros, el backend retorna:
+
+```json
+{
+  "mensaje": "El programa académico solicitado no existe o no se encuentra disponible",
+  "data": null,
+  "success": false
+}
+```
+
+## 🔧 Notas Técnicas
+
+## 🚀 Endpoint – Consulta de Información de Programa Académico
+
+- **Método HTTP:** `GET`
+- **Ruta:** `/api/programas-academicos/{programaId}`
+
+## 📤 Ejemplo de Respuesta JSON
+
+```json
+{
+  "mensaje": "Consulta de programa académico exitosa",
+  "data": {
+    "programa_id": "PROG-ING-01",
+    "nombre_programa": "Ingeniería de Sistemas",
+    "nivel_formacion": "Profesional",
+    "total_creditos": 160,
+    "duracion_semestres": 10,
+    "estado": "ACTIVO"
+  },
+  "success": true
+}
+```
+
+- [ ] Si el programa no existe en los registros, el backend retorna:
+
+```json
+{
+  "mensaje": "El programa académico solicitado no existe o no se encuentra disponible",
+  "data": null,
+  "success": false
+}
+```
+
+## 🧪 Requisitos de Pruebas
+
+## 🔍 Casos de Prueba Funcional
+
+### ✅ Caso 1: Consulta exitosa de programa activo existente
+
+- **Precondición:** El programa con ID 'PROG-ING-01' existe en la base de datos con estado ACTIVO.
+- **Acción:** Ejecutar el endpoint GET `/api/programas-academicos/PROG-ING-01`.
+- **Resultado esperado:**
+  - Código HTTP 200 OK
+  - Campo `programa_id` es `"PROG-ING-01"`
+  - Campo `total_creditos` es `160`
+  - Campo `estado` es `"ACTIVO"`
+
+### ✅ Caso 2: Consulta de programa inexistente en catálogo
+
+- **Precondición:** No existe ningún registro con identificador 'PROG-INVALIDO'.
+- **Acción:** Ejecutar el endpoint GET `/api/programas-academicos/PROG-INVALIDO`.
+- **Resultado esperado:**
+  - Código HTTP 404 Not Found
+  - Campo `mensaje` contiene: "El programa académico solicitado no existe o no se encuentra disponible"
+  - Campo `data` es `null`
+  - Campo `success` es `false`
+
+### ✅ Caso 3: Validación de estructura de datos del programa
+
+- **Precondición:** Ejecución exitosa del endpoint.
+- **Resultado esperado:** La respuesta JSON debe contener exactamente los campos:
+  - "programa_id" (texto)
+  - "nombre_programa" (texto)
+  - "nivel_formacion" (texto)
+  - "total_creditos" (número entero)
+  - "duracion_semestres" (número entero)
+  - "estado" (texto)
+
+### ❌ Caso 4: Identificador con caracteres no admitidos
+
+- **Precondición:** El usuario o cliente envía un identificador con caracteres especiales no conformes al estándar.
+- **Acción:** Ejecutar el endpoint GET `/api/programas-academicos/PROG***01`.
+- **Resultado esperado:**
+  - Código HTTP 400 Bad Request
+  - Campo `mensaje` contiene: "Formato de identificador de programa académico no válido"
+  - Campo `success` es `false`
+
+### ❌ Caso 5: Error de conexión en base de datos académica
+
+- **Precondición:** El repositorio de datos de programas académicos no responde.
+- **Acción:** Ejecutar el endpoint simulando falla de infraestructura de base de datos.
+- **Resultado esperado:**
+  - Código HTTP 503 Service Unavailable
+  - Campo `mensaje` contiene: "No fue posible consultar la información del programa académico"
+  - Campo `success` es `false`
+
+## ✅ Definición de Hecho
+
+# Historia: Consultar programa académico
+
+## 📦 Alcance Funcional
+
+- [ ] El endpoint entrega información precisa del programa con base en el identificador consultado.
+- [ ] La información de créditos y duración corresponde a los planes de estudio vigentes.
+- [ ] La respuesta JSON cumple con el contrato definido.
+
+## 🧪 Pruebas Completadas
+
+- [ ] Se ejecutaron pruebas unitarias para consultar programas existentes y no encontrados.
+- [ ] Se validaron los formatos numéricos de créditos y duración semestral.
+- [ ] Las pruebas funcionales están documentadas y pasadas.
+
+## 📄 Documentación Técnica
+
+- [ ] Endpoint documentado en Swagger / OpenAPI.
+- [ ] Se describe:
+  - Propósito del endpoint
+  - Campos de entrada y salida
+  - Ejemplo de respuesta exitosa
+  - Ejemplo de error  
+
+## 🔐 Manejo de Errores
+
+- [ ] Se devuelve código HTTP 500 o 503 cuando ocurre indisponibilidad en la base de datos institucional.
+- [ ] El campo `mensaje` en el JSON incluye un texto amigable y claro para el usuario técnico o frontend.
+
+---
