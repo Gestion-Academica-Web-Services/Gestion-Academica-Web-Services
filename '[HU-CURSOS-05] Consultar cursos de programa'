@@ -1,0 +1,201 @@
+# '[HU-CURSOS-05] Consultar cursos de programa'
+
+- **Módulo:** MOD-03 — Gestión de Cursos
+- **Submódulo:** SUB-08 — Malla Curricular y Cursos de Programa
+- **Funcionalidad:** FUN-038 — Consultar cursos de programa
+- **API relacionada:** API-INT-06 — Consultar cursos de programa
+
+## 📖 Historia de Usuario
+
+- **Dado** que un estudiante o asesor académico requiere planificar la matrícula o revisar la malla curricular de un programa,
+- **Para** visualizar las asignaturas que componen el plan de estudios junto con sus créditos y prerrequisitos,
+- **Que** el sistema consulte y devuelva el listado estructurado de los cursos asociados al programa académico seleccionado.
+
+## 🔁 Flujo Esperado
+
+- El usuario selecciona el programa académico y opcionalmente el nivel o semestre a consultar en la aplicación.
+- El sistema frontend consume el endpoint GET `/api/programas-academicos/{programaId}/cursos`.
+- El backend ejecuta la consulta en la tabla de asignaturas y mallas curriculares filtrando por el identificador del programa.
+- Se compilan los cursos activos y se devuelve la respuesta en formato JSON con la carga en créditos y prerrequisitos.
+
+## ✅ Criterios de Aceptación
+
+### 1. 🔍 Estructura y lógica del servicio
+
+- [ ] Se expone un endpoint GET que recibe como parámetro obligatorio en ruta el identificador del programa.
+- [ ] Se verifica que el programa exista en el sistema antes de recuperar los cursos de la malla.
+- [ ] Se listan los cursos asociados ordenados según su ubicación semestral o código de asignatura.
+
+### 2. 📆 Estructura de la información
+
+- [ ] Se responde con la siguiente estructura en JSON:
+
+```json
+{
+  "message": "Consulta de cursos de programa exitosa",
+  "data": {
+    "programa_id": "PROG-ING-01",
+    "semestre": 5,
+    "cursos": [
+      {
+        "curso_id": "CURS-WS-501",
+        "nombre_curso": "Web Services",
+        "creditos": 3,
+        "prerrequisito": "Bases de Datos",
+        "estado": "ACTIVO"
+      },
+      {
+        "curso_id": "CURS-SO-502",
+        "nombre_curso": "Sistemas Operativos",
+        "creditos": 3,
+        "prerrequisito": "Arquitectura de Computadores",
+        "estado": "ACTIVO"
+      }
+    ]
+  },
+  "success": true
+}
+```
+
+- [ ] Si no existen cursos registrados para el programa indicado, el backend retorna:
+
+```json
+{
+  "mensaje": "No existen cursos asociados al programa académico indicado",
+  "data": {
+    "programa_id": "PROG-ING-01",
+    "cursos": []
+  },
+  "success": false
+}
+```
+
+## 🔧 Notas Técnicas
+
+## 🚀 Endpoint – Consulta de Cursos por Programa Académico
+
+- **Método HTTP:** `GET`
+- **Ruta:** `/api/programas-academicos/{programaId}/cursos`
+
+## 📤 Ejemplo de Respuesta JSON
+
+```json
+{
+  "mensaje": "Consulta de cursos de programa exitosa",
+  "data": {
+    "programa_id": "PROG-ING-01",
+    "semestre": 5,
+    "cursos": [
+      {
+        "curso_id": "CURS-WS-501",
+        "nombre_curso": "Web Services",
+        "creditos": 3,
+        "prerrequisito": "Bases de Datos",
+        "estado": "ACTIVO"
+      },
+      {
+        "curso_id": "CURS-SO-502",
+        "nombre_curso": "Sistemas Operativos",
+        "creditos": 3,
+        "prerrequisito": "Arquitectura de Computadores",
+        "estado": "ACTIVO"
+      }
+    ]
+  },
+  "success": true
+}
+```
+
+- [ ] Si no existen cursos registrados para el programa indicado, el backend retorna:
+
+```json
+{
+  "mensaje": "No existen cursos asociados al programa académico indicado",
+  "data": {
+    "programa_id": "PROG-ING-01",
+    "cursos": []
+  },
+  "success": false
+}
+```
+
+## 🧪 Requisitos de Pruebas
+
+## 🔍 Casos de Prueba Funcional
+
+### ✅ Caso 1: Consulta de cursos para programa con malla activa
+
+- **Precondición:** El programa 'PROG-ING-01' posee asignaturas registradas y activas.
+- **Acción:** Ejecutar el endpoint GET `/api/programas-academicos/PROG-ING-01/cursos`.
+- **Resultado esperado:**
+  - Código HTTP 200 OK
+  - El arreglo `cursos` contiene al menos una asignatura
+  - Cada curso presenta código, nombre, cantidad de créditos y prerrequisito
+  - Campo `success` es `true`
+
+### ✅ Caso 2: Programa sin asignaturas asignadas
+
+- **Precondición:** El programa 'PROG-NUEVO-00' está creado pero aún no cuenta con cursos asociados.
+- **Acción:** Ejecutar el endpoint GET `/api/programas-academicos/PROG-NUEVO-00/cursos`.
+- **Resultado esperado:**
+  - Código HTTP 200 OK
+  - Arreglo `cursos` se entrega vacío (`[]`)
+  - Campo `mensaje` contiene: "No existen cursos asociados al programa académico indicado"
+  - Campo `success` es `false`
+
+### ✅ Caso 3: Validación de campos en el listado de asignaturas
+
+- **Precondición:** Ejecución exitosa de la consulta de cursos.
+- **Resultado esperado:** La respuesta JSON debe contener exactamente los campos:
+  - "programa_id" (texto)
+  - "cursos" (lista de objetos con "curso_id", "nombre_curso", "creditos" entero y "estado")
+  - "mensaje" (texto)
+  - "success" (booleano)
+
+### ❌ Caso 4: Parámetro de programa inexistente o mal formado
+
+- **Precondición:** Se ingresa un identificador con caracteres que violan el formato permitido.
+- **Acción:** Ejecutar el endpoint GET `/api/programas-academicos/PROG??123/cursos`.
+- **Resultado esperado:**
+  - Código HTTP 400 Bad Request
+  - Campo `mensaje` contiene: "Identificador de programa académico con formato no válido"
+  - Campo `success` es `false`
+
+### ❌ Caso 5: Error en la base de datos de mallas curriculares
+
+- **Precondición:** Ocurre una caída en el motor de base de datos de gestión de cursos.
+- **Acción:** Ejecutar el endpoint bajo interrupción de servicio.
+- **Resultado esperado:**
+  - Código HTTP 503 Service Unavailable
+  - Campo `mensaje` contiene: "No fue posible consultar los cursos del programa académico"
+  - Campo `success` es `false`
+
+## ✅ Definición de Hecho
+
+# Historia: Consultar cursos de programa
+
+## 📦 Alcance Funcional
+
+- [ ] El endpoint entrega el listado de asignaturas correspondientes al programa consultado.
+- [ ] La información de créditos y prerrequisitos es consistente con el plan de estudios.
+- [ ] La respuesta JSON cumple con el contrato definido en el inventario.
+
+## 🧪 Pruebas Completadas
+
+- [ ] Se ejecutaron pruebas unitarias para consultar programas con diversas cargas de asignaturas.
+- [ ] Se cubrieron casos de mallas vacías y respuestas sin datos.
+- [ ] Las pruebas funcionales están documentadas y pasadas.
+
+## 📄 Documentación Técnica
+
+- [ ] Endpoint documentado en Swagger / OpenAPI.
+- [ ] Se describe:
+  - Propósito del endpoint
+  - Campos de entrada y salida
+  - Ejemplo de respuesta exitosa
+  - Ejemplo de error  
+
+## 🔐 Manejo de Errores
+
+- [ ] Se devuelve código HTTP 500 o 503 ante caídas de conexión con la base de datos.
+- [ ] El campo `mensaje` en el JSON incluye un texto amigable y claro para el usuario técnico o frontend.
