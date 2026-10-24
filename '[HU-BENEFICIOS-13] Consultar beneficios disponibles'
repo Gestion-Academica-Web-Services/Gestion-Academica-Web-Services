@@ -1,0 +1,405 @@
+# '[HU-BENEFICIOS-13] Consultar beneficios disponibles'
+
+- **Módulo:** MOD-04 — Gestión de Convenios y Beneficios
+- **Submódulo:** SUB-15 — Elegibilidad y Aplicación de Beneficios
+- **Funcionalidad:** FUN-075 — Consultar beneficios elegibles
+- **API relacionada:** API-INT-08 — Consultar beneficios
+
+## 📖 Historia de Usuario
+
+- **Dado** que un estudiante o aspirante desea conocer los alivios económicos aplicables a su matrícula según su programa y perfil,
+- **Para** identificar convenios, becas y descuentos a los cuales puede postularse legal y académicamente,
+- **Que** el sistema consulte y liste los beneficios institucionales vigentes parametrizados para dicho usuario y programa.
+
+## 🔁 Flujo Esperado
+
+- El usuario consulta las opciones de ayuda económica desde el módulo de convenios en la interfaz del sistema.
+- El sistema frontend realiza una petición HTTP GET a `/api/beneficios` enviando como parámetros `usuarioId` y `programaId`.
+- El backend filtra en la base de datos los convenios con entidades aliadas, becas y descuentos comerciales que estén activos y vigentes.
+- Se compila y retorna la lista de beneficios con sus respectivos porcentajes de descuento y condiciones en formato JSON.
+
+## ✅ Criterios de Aceptación
+
+### 1. 🔍 Estructura y lógica del servicio
+
+- [ ] Se expone un endpoint GET que recibe parámetros de consulta `usuarioId` y `programaId`.
+- [ ] Se verifica que únicamente se listen beneficios asociados a convenios vigentes y activos.
+- [ ] Se detalla el porcentaje de descuento o alivio y la categoría a la que pertenece cada beneficio.
+
+### 2. 📆 Estructura de la información
+
+- [ ] Se responde con la siguiente estructura en JSON:
+
+```json
+{
+  "message": "Consulta de beneficios exitosa",
+  "data": {
+    "usuario_id": 101,
+    "programa_id": "PROG-ING-01",
+    "beneficios": [
+      {
+        "beneficio_id": "BEN-CONV-01",
+        "nombre": "Beca Convenio Alcaldía",
+        "porcentaje_descuento": 25.0,
+        "tipo": "CONVENIO_INSTITUCIONAL",
+        "vigente": true
+      },
+      {
+        "beneficio_id": "BEN-DESC-02",
+        "nombre": "Descuento Pronto Pago",
+        "porcentaje_descuento": 10.0,
+        "tipo": "PROMOCIONAL",
+        "vigente": true
+      }
+    ]
+  },
+  "success": true
+}
+```
+
+- [ ] Si no existen beneficios vigentes para los parámetros consultados, el backend retorna:
+
+```json
+{
+  "mensaje": "No existen beneficios vigentes para los criterios consultados",
+  "data": {
+    "usuario_id": 101,
+    "programa_id": "PROG-ING-01",
+    "beneficios": []
+  },
+  "success": false
+}
+```
+
+## 🔧 Notas Técnicas
+
+## 🚀 Endpoint – Consulta de Beneficios Disponibles
+
+- **Método HTTP:** `GET`
+- **Ruta:** `/api/beneficios`
+
+## 📤 Ejemplo de Respuesta JSON
+
+```json
+{
+  "mensaje": "Consulta de beneficios exitosa",
+  "data": {
+    "usuario_id": 101,
+    "programa_id": "PROG-ING-01",
+    "beneficios": [
+      {
+        "beneficio_id": "BEN-CONV-01",
+        "nombre": "Beca Convenio Alcaldía",
+        "porcentaje_descuento": 25.0,
+        "tipo": "CONVENIO_INSTITUCIONAL",
+        "vigente": true
+      },
+      {
+        "beneficio_id": "BEN-DESC-02",
+        "nombre": "Descuento Pronto Pago",
+        "porcentaje_descuento": 10.0,
+        "tipo": "PROMOCIONAL",
+        "vigente": true
+      }
+    ]
+  },
+  "success": true
+}
+```
+
+- [ ] Si no existen beneficios vigentes para los parámetros consultados, el backend retorna:
+
+```json
+{
+  "mensaje": "No existen beneficios vigentes para los criterios consultados",
+  "data": {
+    "usuario_id": 101,
+    "programa_id": "PROG-ING-01",
+    "beneficios": []
+  },
+  "success": false
+}
+```
+
+## 🧪 Requisitos de Pruebas
+
+## 🔍 Casos de Prueba Funcional
+
+### ✅ Caso 1: Consulta de beneficios para usuario y programa con convenios
+
+- **Precondición:** Existen convenios activos para el programa 'PROG-ING-01'.
+- **Acción:** Ejecutar el endpoint GET `/api/beneficios?usuarioId=101&programaId=PROG-ING-01`.
+- **Resultado esperado:**
+  - Código HTTP 200 OK
+  - Arreglo `beneficios` contiene al menos un beneficio vigente
+  - Campos numéricos de porcentaje mayores a 0
+  - Campo `success` es `true`
+
+### ✅ Caso 2: Consulta sin beneficios aplicables
+
+- **Precondición:** El programa no cuenta con convenios ni promociones configuradas.
+- **Acción:** Ejecutar el endpoint GET `/api/beneficios?usuarioId=101&programaId=PROG-EXT-99`.
+- **Resultado esperado:**
+  - Código HTTP 200 OK
+  - Arreglo `beneficios` vacío (`[]`)
+  - Campo `mensaje` contiene: "No existen beneficios vigentes para los criterios consultados"
+  - Campo `success` es `false`
+
+### ✅ Caso 3: Verificación de estructura y tipos de datos en la respuesta
+
+- **Precondición:** Ejecución exitosa de la consulta de beneficios.
+- **Resultado esperado:** La respuesta JSON debe contener exactamente:
+  - "usuario_id" (número entero)
+  - "programa_id" (texto)
+  - "beneficios" (arreglo de objetos)
+  - "mensaje" (texto)
+
+### ❌ Caso 4: Parámetros obligatorios ausentes en la consulta
+
+- **Precondición:** La solicitud se realiza sin suministrar el parámetro `programaId`.
+- **Acción:** Ejecutar el endpoint GET `/api/beneficios?usuarioId=101`.
+- **Resultado esperado:**
+  - Código HTTP 400 Bad Request
+  - Campo `mensaje` contiene: "El parámetro de consulta programaId es obligatorio"
+  - Campo `success` es `false`
+
+### ❌ Caso 5: Error en la base de datos de convenios y beneficios
+
+- **Precondición:** Indisponibilidad en el almacenamiento de convenios.
+- **Acción:** Ejecutar el endpoint bajo fallo del servicio de convenios.
+- **Resultado esperado:**
+  - Código HTTP 503 Service Unavailable
+  - Campo `mensaje` contiene: "No fue posible consultar los beneficios disponibles"
+  - Campo `success` es `false`
+
+## ✅ Definición de Hecho
+
+# Historia: Consultar beneficios disponibles
+
+## 📦 Alcance Funcional
+
+- [ ] El endpoint retorna la información de convenios y descuentos vigentes.
+- [ ] Los porcentajes de descuento son exactos y expresados en formato numérico.
+- [ ] La respuesta JSON cumple con el contrato definido en el inventario.
+
+## 🧪 Pruebas Completadas
+
+- [ ] Se ejecutaron pruebas unitarias para validar el filtrado por vigencia de convenios.
+- [ ] Se cubrieron casos de usuarios sin convenios y parámetros omitidos.
+- [ ] Las pruebas funcionales están documentadas y pasadas.
+
+## 📄 Documentación Técnica
+
+- [ ] Endpoint documentado en Swagger / OpenAPI.
+- [ ] Se describe:
+  - Propósito del endpoint
+  - Campos de entrada y salida
+  - Ejemplo de respuesta exitosa
+  - Ejemplo de error  
+
+## 🔐 Manejo de Errores
+
+- [ ] Se devuelve código HTTP 500 o 503 cuando ocurre una caída de base de datos.
+- [ ] El campo `mensaje` en el JSON incluye un texto amigable y claro para el usuario técnico o frontend.# '[HU-BENEFICIOS-13] Consultar beneficios disponibles'
+
+- **Módulo:** MOD-04 — Gestión de Convenios y Beneficios
+- **Submódulo:** SUB-15 — Elegibilidad y Aplicación de Beneficios
+- **Funcionalidad:** FUN-075 — Consultar beneficios elegibles
+- **API relacionada:** API-INT-08 — Consultar beneficios
+
+## 📖 Historia de Usuario
+
+- **Dado** que un estudiante o aspirante desea conocer los alivios económicos aplicables a su matrícula según su programa y perfil,
+- **Para** identificar convenios, becas y descuentos a los cuales puede postularse legal y académicamente,
+- **Que** el sistema consulte y liste los beneficios institucionales vigentes parametrizados para dicho usuario y programa.
+
+## 🔁 Flujo Esperado
+
+- El usuario consulta las opciones de ayuda económica desde el módulo de convenios en la interfaz del sistema.
+- El sistema frontend realiza una petición HTTP GET a `/api/beneficios` enviando como parámetros `usuarioId` y `programaId`.
+- El backend filtra en la base de datos los convenios con entidades aliadas, becas y descuentos comerciales que estén activos y vigentes.
+- Se compila y retorna la lista de beneficios con sus respectivos porcentajes de descuento y condiciones en formato JSON.
+
+## ✅ Criterios de Aceptación
+
+### 1. 🔍 Estructura y lógica del servicio
+
+- [ ] Se expone un endpoint GET que recibe parámetros de consulta `usuarioId` y `programaId`.
+- [ ] Se verifica que únicamente se listen beneficios asociados a convenios vigentes y activos.
+- [ ] Se detalla el porcentaje de descuento o alivio y la categoría a la que pertenece cada beneficio.
+
+### 2. 📆 Estructura de la información
+
+- [ ] Se responde con la siguiente estructura en JSON:
+
+```json
+{
+  "message": "Consulta de beneficios exitosa",
+  "data": {
+    "usuario_id": 101,
+    "programa_id": "PROG-ING-01",
+    "beneficios": [
+      {
+        "beneficio_id": "BEN-CONV-01",
+        "nombre": "Beca Convenio Alcaldía",
+        "porcentaje_descuento": 25.0,
+        "tipo": "CONVENIO_INSTITUCIONAL",
+        "vigente": true
+      },
+      {
+        "beneficio_id": "BEN-DESC-02",
+        "nombre": "Descuento Pronto Pago",
+        "porcentaje_descuento": 10.0,
+        "tipo": "PROMOCIONAL",
+        "vigente": true
+      }
+    ]
+  },
+  "success": true
+}
+```
+
+- [ ] Si no existen beneficios vigentes para los parámetros consultados, el backend retorna:
+
+```json
+{
+  "mensaje": "No existen beneficios vigentes para los criterios consultados",
+  "data": {
+    "usuario_id": 101,
+    "programa_id": "PROG-ING-01",
+    "beneficios": []
+  },
+  "success": false
+}
+```
+
+## 🔧 Notas Técnicas
+
+## 🚀 Endpoint – Consulta de Beneficios Disponibles
+
+- **Método HTTP:** `GET`
+- **Ruta:** `/api/beneficios`
+
+## 📤 Ejemplo de Respuesta JSON
+
+```json
+{
+  "mensaje": "Consulta de beneficios exitosa",
+  "data": {
+    "usuario_id": 101,
+    "programa_id": "PROG-ING-01",
+    "beneficios": [
+      {
+        "beneficio_id": "BEN-CONV-01",
+        "nombre": "Beca Convenio Alcaldía",
+        "porcentaje_descuento": 25.0,
+        "tipo": "CONVENIO_INSTITUCIONAL",
+        "vigente": true
+      },
+      {
+        "beneficio_id": "BEN-DESC-02",
+        "nombre": "Descuento Pronto Pago",
+        "porcentaje_descuento": 10.0,
+        "tipo": "PROMOCIONAL",
+        "vigente": true
+      }
+    ]
+  },
+  "success": true
+}
+```
+
+- [ ] Si no existen beneficios vigentes para los parámetros consultados, el backend retorna:
+
+```json
+{
+  "mensaje": "No existen beneficios vigentes para los criterios consultados",
+  "data": {
+    "usuario_id": 101,
+    "programa_id": "PROG-ING-01",
+    "beneficios": []
+  },
+  "success": false
+}
+```
+
+## 🧪 Requisitos de Pruebas
+
+## 🔍 Casos de Prueba Funcional
+
+### ✅ Caso 1: Consulta de beneficios para usuario y programa con convenios
+
+- **Precondición:** Existen convenios activos para el programa 'PROG-ING-01'.
+- **Acción:** Ejecutar el endpoint GET `/api/beneficios?usuarioId=101&programaId=PROG-ING-01`.
+- **Resultado esperado:**
+  - Código HTTP 200 OK
+  - Arreglo `beneficios` contiene al menos un beneficio vigente
+  - Campos numéricos de porcentaje mayores a 0
+  - Campo `success` es `true`
+
+### ✅ Caso 2: Consulta sin beneficios aplicables
+
+- **Precondición:** El programa no cuenta con convenios ni promociones configuradas.
+- **Acción:** Ejecutar el endpoint GET `/api/beneficios?usuarioId=101&programaId=PROG-EXT-99`.
+- **Resultado esperado:**
+  - Código HTTP 200 OK
+  - Arreglo `beneficios` vacío (`[]`)
+  - Campo `mensaje` contiene: "No existen beneficios vigentes para los criterios consultados"
+  - Campo `success` es `false`
+
+### ✅ Caso 3: Verificación de estructura y tipos de datos en la respuesta
+
+- **Precondición:** Ejecución exitosa de la consulta de beneficios.
+- **Resultado esperado:** La respuesta JSON debe contener exactamente:
+  - "usuario_id" (número entero)
+  - "programa_id" (texto)
+  - "beneficios" (arreglo de objetos)
+  - "mensaje" (texto)
+
+### ❌ Caso 4: Parámetros obligatorios ausentes en la consulta
+
+- **Precondición:** La solicitud se realiza sin suministrar el parámetro `programaId`.
+- **Acción:** Ejecutar el endpoint GET `/api/beneficios?usuarioId=101`.
+- **Resultado esperado:**
+  - Código HTTP 400 Bad Request
+  - Campo `mensaje` contiene: "El parámetro de consulta programaId es obligatorio"
+  - Campo `success` es `false`
+
+### ❌ Caso 5: Error en la base de datos de convenios y beneficios
+
+- **Precondición:** Indisponibilidad en el almacenamiento de convenios.
+- **Acción:** Ejecutar el endpoint bajo fallo del servicio de convenios.
+- **Resultado esperado:**
+  - Código HTTP 503 Service Unavailable
+  - Campo `mensaje` contiene: "No fue posible consultar los beneficios disponibles"
+  - Campo `success` es `false`
+
+## ✅ Definición de Hecho
+
+# Historia: Consultar beneficios disponibles
+
+## 📦 Alcance Funcional
+
+- [ ] El endpoint retorna la información de convenios y descuentos vigentes.
+- [ ] Los porcentajes de descuento son exactos y expresados en formato numérico.
+- [ ] La respuesta JSON cumple con el contrato definido en el inventario.
+
+## 🧪 Pruebas Completadas
+
+- [ ] Se ejecutaron pruebas unitarias para validar el filtrado por vigencia de convenios.
+- [ ] Se cubrieron casos de usuarios sin convenios y parámetros omitidos.
+- [ ] Las pruebas funcionales están documentadas y pasadas.
+
+## 📄 Documentación Técnica
+
+- [ ] Endpoint documentado en Swagger / OpenAPI.
+- [ ] Se describe:
+  - Propósito del endpoint
+  - Campos de entrada y salida
+  - Ejemplo de respuesta exitosa
+  - Ejemplo de error  
+
+## 🔐 Manejo de Errores
+
+- [ ] Se devuelve código HTTP 500 o 503 cuando ocurre una caída de base de datos.
+- [ ] El campo `mensaje` en el JSON incluye un texto amigable y claro para el usuario técnico o frontend.
