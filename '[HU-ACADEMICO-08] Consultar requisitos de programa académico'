@@ -1,0 +1,193 @@
+# '[HU-ACADEMICO-08] Consultar requisitos de programa académico'
+
+- **Módulo:** MOD-02 — Gestión Académica
+- **Submódulo:** SUB-06 — Requisitos de Admisión y Programa
+- **Funcionalidad:** FUN-027 — Consultar requisito
+- **API relacionada:** API-INT-05 — Consultar requisitos
+
+## 📖 Historia de Usuario
+
+- **Dado** que un aspirante o coordinador académico consulta la ficha técnica de un programa ofertado,
+- **Para** verificar con certeza los requisitos académicos y documentales exigidos para el ingreso o permanencia,
+- **Que** el sistema liste la totalidad de los requisitos asociados y vigentes para dicho programa académico.
+
+## 🔁 Flujo Esperado
+
+- El usuario selecciona la opción de requisitos de admisión de un programa académico en la interfaz.
+- La aplicación cliente invoca el endpoint GET `/api/programas-academicos/{programaId}/requisitos`.
+- El backend consulta las asociaciones entre el programa y el catálogo de requisitos académicos en la base de datos.
+- Se compila la lista de requisitos tipificados (obligatorios, opcionales, documentales) y se retorna en la respuesta JSON.
+
+## ✅ Criterios de Aceptación
+
+### 1. 🔍 Estructura y lógica del servicio
+
+- [ ] Se expone un endpoint GET que recibe como parámetro el código del programa académico.
+- [ ] Se valida que el programa exista y cuente con requisitos parametrizados.
+- [ ] Se incluye la clasificación y descripción detallada de cada requisito en el arreglo de datos.
+
+### 2. 📆 Estructura de la información
+
+- [ ] Se responde con la siguiente estructura en JSON:
+
+```json
+{
+  "message": "Consulta de requisitos exitosa",
+  "data": {
+    "programa_id": "PROG-ING-01",
+    "nombre_programa": "Ingeniería de Sistemas",
+    "requisitos": [
+      {
+        "requisito_id": "REQ-01",
+        "descripcion": "Pruebas Saber 11 con puntaje mínimo global de 250",
+        "tipo": "OBLIGATORIO"
+      },
+      {
+        "requisito_id": "REQ-02",
+        "descripcion": "Título de bachiller o acta de grado autenticada",
+        "tipo": "OBLIGATORIO"
+      }
+    ]
+  },
+  "success": true
+}
+```
+
+- [ ] Si no existen requisitos asociados al programa, el backend retorna:
+
+```json
+{
+  "mensaje": "No se encontraron requisitos configurados para el programa especificado",
+  "data": {
+    "programa_id": "PROG-ING-01",
+    "requisitos": []
+  },
+  "success": false
+}
+```
+
+## 🔧 Notas Técnicas
+
+## 🚀 Endpoint – Consulta de Requisitos Académicos
+
+- **Método HTTP:** `GET`
+- **Ruta:** `/api/programas-academicos/{programaId}/requisitos`
+
+## 📤 Ejemplo de Respuesta JSON
+
+```json
+{
+  "mensaje": "Consulta de requisitos exitosa",
+  "data": {
+    "programa_id": "PROG-ING-01",
+    "nombre_programa": "Ingeniería de Sistemas",
+    "requisitos": [
+      {
+        "requisito_id": "REQ-01",
+        "descripcion": "Pruebas Saber 11 con puntaje mínimo global de 250",
+        "tipo": "OBLIGATORIO"
+      },
+      {
+        "requisito_id": "REQ-02",
+        "descripcion": "Título de bachiller o acta de grado autenticada",
+        "tipo": "OBLIGATORIO"
+      }
+    ]
+  },
+  "success": true
+}
+```
+
+- [ ] Si no existen requisitos asociados al programa, el backend retorna:
+
+```json
+{
+  "mensaje": "No se encontraron requisitos configurados para el programa especificado",
+  "data": {
+    "programa_id": "PROG-ING-01",
+    "requisitos": []
+  },
+  "success": false
+}
+```
+
+## 🧪 Requisitos de Pruebas
+
+## 🔍 Casos de Prueba Funcional
+
+### ✅ Caso 1: Consulta de requisitos de programa configurado
+
+- **Precondición:** El programa 'PROG-ING-01' tiene asociados requisitos en el submódulo académico.
+- **Acción:** Ejecutar el endpoint GET `/api/programas-academicos/PROG-ING-01/requisitos`.
+- **Resultado esperado:**
+  - Código HTTP 200 OK
+  - Arreglo `requisitos` con al menos un elemento
+  - Cada elemento contiene `requisito_id`, `descripcion` y `tipo`
+  - Campo `success` es `true`
+
+### ✅ Caso 2: Programa existente sin requisitos configurados
+
+- **Precondición:** El programa 'PROG-CURSO-CORTO' existe pero no tiene requisitos asociados.
+- **Acción:** Ejecutar el endpoint GET `/api/programas-academicos/PROG-CURSO-CORTO/requisitos`.
+- **Resultado esperado:**
+  - Código HTTP 200 OK
+  - Arreglo `requisitos` vacío (`[]`)
+  - Campo `mensaje` contiene: "No se encontraron requisitos configurados para el programa especificado"
+  - Campo `success` es `false`
+
+### ✅ Caso 3: Validación de campos de la lista de requisitos
+
+- **Precondición:** Ejecución exitosa de la consulta de requisitos.
+- **Resultado esperado:** La respuesta JSON debe contener exactamente:
+  - "programa_id" (texto)
+  - "nombre_programa" (texto)
+  - "requisitos" (arreglo de objetos)
+  - "success" (booleano)
+
+### ❌ Caso 4: Parámetro de ruta con formato inválido
+
+- **Precondición:** Se envía un parámetro de programa con caracteres no permitidos.
+- **Acción:** Ejecutar el endpoint GET `/api/programas-academicos/--REQ--/requisitos`.
+- **Resultado esperado:**
+  - Código HTTP 400 Bad Request
+  - Campo `mensaje` contiene: "Identificador de programa académico con formato no válido"
+  - Campo `success` es `false`
+
+### ❌ Caso 5: Error en la consulta del servicio de requisitos
+
+- **Precondición:** La tabla de requisitos o la relación de programas no está disponible.
+- **Acción:** Ejecutar el endpoint simulando falla del servicio de base de datos.
+- **Resultado esperado:**
+  - Código HTTP 503 Service Unavailable
+  - Campo `mensaje` contiene: "No fue posible consultar los requisitos del programa académico"
+  - Campo `success` es `false`
+
+## ✅ Definición de Hecho
+
+# Historia: Consultar requisitos de programa académico
+
+## 📦 Alcance Funcional
+
+- [ ] El endpoint entrega la lista completa de requisitos para el programa indicado.
+- [ ] Los requisitos muestran con exactitud su tipología y descripción.
+- [ ] La respuesta JSON cumple con el contrato acordado en el inventario.
+
+## 🧪 Pruebas Completadas
+
+- [ ] Se ejecutaron pruebas unitarias para programas con múltiples requisitos y sin ellos.
+- [ ] Se validó el manejo de identificadores inexistentes y errores de sintaxis en rutas.
+- [ ] Las pruebas funcionales están documentadas y pasadas.
+
+## 📄 Documentación Técnica
+
+- [ ] Endpoint documentado en Swagger / OpenAPI.
+- [ ] Se describe:
+  - Propósito del endpoint
+  - Campos de entrada y salida
+  - Ejemplo de respuesta exitosa
+  - Ejemplo de error  
+
+## 🔐 Manejo de Errores
+
+- [ ] Se devuelve código HTTP 500 o 503 en situaciones de falla del repositorio de datos.
+- [ ] El campo `mensaje` en el JSON incluye un texto amigable y claro para el usuario técnico o frontend.
