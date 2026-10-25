@@ -1,0 +1,179 @@
+# '[HU-MATRICULA-10] Formalizar matrícula académica'
+
+- **Módulo:** MOD-06 — Gestión de Matrículas
+- **Submódulo:** SUB-21 — Condiciones y Formalización
+- **Funcionalidad:** FUN-104 — Formalizar matrícula
+- **API relacionada:** API-INT-18 — Formalizar matrícula
+
+## 📖 Historia de Usuario
+
+- **Dado** que un estudiante ha cumplido con los requisitos académicos, carga de materias y condiciones financieras o de pago,
+- **Para** culminar su proceso de inscripción y adquirir la condición oficial de estudiante matriculado en el periodo,
+- **Que** el sistema formalice definitivamente la matrícula, actualizando su estado a FORMALIZADA y consolidando su cupo oficial.
+
+## 🔁 Flujo Esperado
+
+- El estudiante o coordinador confirma la finalización del proceso de matrícula desde la plataforma.
+- El cliente web ejecuta una petición HTTP PUT al endpoint `/api/matriculas/{matriculaId}/formalizar`.
+- El backend verifica que el pago o financiación esté aprobado y que los cupos reservados sigan vigentes.
+- Se actualiza el estado de la matrícula a `FORMALIZADA`, se registra la fecha de confirmación y se retorna el resultado en JSON.
+
+## ✅ Criterios de Aceptación
+
+### 1. 🔍 Estructura y lógica del servicio
+
+- [ ] Se expone un endpoint PUT que recibe `matriculaId` como parámetro de ruta.
+- [ ] Se valida que la matrícula tenga el pago o financiación acreditada antes de autorizar la formalización.
+- [ ] Se consolidan definitivamente los cupos de los grupos inscritos en el periodo lectivo.
+
+### 2. 📆 Estructura de la información
+
+- [ ] Se responde con la siguiente estructura en JSON:
+
+```json
+{
+  "message": "Matrícula formalizada exitosamente",
+  "data": {
+    "matricula_id": "MAT-2026-054",
+    "estudiante_id": 101,
+    "periodo_academico": "2026-2",
+    "total_creditos_inscritos": 18,
+    "estado_matricula": "FORMALIZADA",
+    "fecha_formalizacion": "2026-10-24T10:15:30Z"
+  },
+  "success": true
+}
+```
+
+- [ ] Si la matrícula presenta obligaciones pendientes, el backend retorna:
+
+```json
+{
+  "mensaje": "No se puede formalizar la matrícula: condiciones financieras o académicas pendientes",
+  "data": {
+    "matricula_id": "MAT-2026-054",
+    "estado_matricula": "PENDIENTE_PAGO"
+  },
+  "success": false
+}
+```
+
+## 🔧 Notas Técnicas
+
+## 🚀 Endpoint – Formalización de Matrícula
+
+- **Método HTTP:** `PUT`
+- **Ruta:** `/api/matriculas/{matriculaId}/formalizar`
+
+## 📤 Ejemplo de Respuesta JSON
+
+```json
+{
+  "mensaje": "Matrícula formalizada exitosamente",
+  "data": {
+    "matricula_id": "MAT-2026-054",
+    "estudiante_id": 101,
+    "periodo_academico": "2026-2",
+    "total_creditos_inscritos": 18,
+    "estado_matricula": "FORMALIZADA",
+    "fecha_formalizacion": "2026-10-24T10:15:30Z"
+  },
+  "success": true
+}
+```
+
+- [ ] Si la matrícula presenta obligaciones pendientes, el backend retorna:
+
+```json
+{
+  "mensaje": "No se puede formalizar la matrícula: condiciones financieras o académicas pendientes",
+  "data": {
+    "matricula_id": "MAT-2026-054",
+    "estado_matricula": "PENDIENTE_PAGO"
+  },
+  "success": false
+}
+```
+
+## 🧪 Requisitos de Pruebas
+
+## 🔍 Casos de Prueba Funcional
+
+### ✅ Caso 1: Formalización exitosa con condiciones satisfechas
+
+- **Precondición:** La matrícula 'MAT-2026-054' está pagada y tiene cursos inscritos.
+- **Acción:** Ejecutar PUT `/api/matriculas/MAT-2026-054/formalizar`.
+- **Resultado esperado:**
+  - Código HTTP 200 OK
+  - Campo `estado_matricula` es `"FORMALIZADA"`
+  - Campo `fecha_formalizacion` contiene marca de tiempo válida
+  - Campo `success` es `true`
+
+### ✅ Caso 2: Intento de formalizar matrícula sin soporte de pago
+
+- **Precondición:** La matrícula no registra pago ni solicitud de financiación aprobada.
+- **Acción:** Ejecutar PUT `/api/matriculas/MAT-2026-054/formalizar`.
+- **Resultado esperado:**
+  - Código HTTP 422 Unprocessable Entity
+  - Campo `mensaje` contiene: "No se puede formalizar la matrícula: condiciones financieras o académicas pendientes"
+  - Campo `estado_matricula` es `"PENDIENTE_PAGO"`
+  - Campo `success` es `false`
+
+### ✅ Caso 3: Integridad de tipos en la formalización
+
+- **Precondición:** Ejecución exitosa de la formalización.
+- **Resultado esperado:** La respuesta JSON debe contener exactamente:
+  - "matricula_id" (texto)
+  - "estudiante_id" (número entero)
+  - "periodo_academico" (texto)
+  - "total_creditos_inscritos" (número entero)
+  - "estado_matricula" (texto)
+  - "fecha_formalizacion" (texto ISO 8601)
+
+### ❌ Caso 4: Matrícula inexistente en el sistema
+
+- **Precondición:** El identificador de matrícula no existe en la base de datos.
+- **Acción:** Ejecutar PUT `/api/matriculas/MAT-INEXISTENTE/formalizar`.
+- **Resultado esperado:**
+  - Código HTTP 404 Not Found
+  - Campo `mensaje` contiene: "La matrícula indicada no existe"
+  - Campo `success` es `false`
+
+### ❌ Caso 5: Error en la transacción de cierre de matrícula
+
+- **Precondición:** Falla transaccional al momento de asentar la formalización.
+- **Acción:** Ejecutar el endpoint bajo fallo del gestor de persistencia.
+- **Resultado esperado:**
+  - Código HTTP 503 Service Unavailable
+  - Campo `mensaje` contiene: "No fue posible formalizar la matrícula"
+  - Campo `success` es `false`
+
+## ✅ Definición de Hecho
+
+# Historia: Formalizar matrícula académica
+
+## 📦 Alcance Funcional
+
+- [ ] El endpoint valida todas las precondiciones y cambia el estado a formalizada.
+- [ ] Los créditos inscritos y la fecha quedan consolidados sin inconsistencias.
+- [ ] La respuesta JSON cumple plenamente con el contrato estipulado.
+
+## 🧪 Pruebas Completadas
+
+- [ ] Se ejecutaron pruebas unitarias para verificar la transición de estados de matrícula.
+- [ ] Se probaron casos de intento de formalización sin pago y con conflicto de cupos.
+- [ ] Las pruebas funcionales están documentadas y pasadas.
+
+## 📄 Documentación Técnica
+
+- [ ] Endpoint documentado en Swagger / OpenAPI.
+- [ ] Se describe:
+  - Propósito del endpoint
+  - Campos de entrada y salida
+  - Ejemplo de respuesta exitosa
+  - Ejemplo de error  
+
+## 🔐 Manejo de Errores
+
+- [ ] Se devuelve código HTTP 500 o 503 cuando ocurre una interrupción del servicio transaccional.
+- [ ] El campo `mensaje` en el JSON incluye un texto amigable y claro para el usuario técnico o frontend.
