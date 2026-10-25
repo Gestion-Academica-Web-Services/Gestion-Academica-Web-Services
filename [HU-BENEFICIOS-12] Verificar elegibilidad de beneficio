@@ -1,0 +1,182 @@
+# '[HU-BENEFICIOS-12] Verificar elegibilidad de beneficio'
+
+- **Módulo:** MOD-04 — Gestión de Convenios y Beneficios
+- **Submódulo:** SUB-15 — Elegibilidad y Aplicación de Beneficios
+- **Funcionalidad:** FUN-074 — Verificar elegibilidad
+- **API relacionada:** API-INT-09 — Validar elegibilidad
+
+## 📖 Historia de Usuario
+
+- **Dado** que un estudiante solicita la aplicación de un beneficio económico específico a su matrícula,
+- **Para** constatar si satisface las reglas de promedio, estratificación o vínculo corporativo exigidas por el convenio,
+- **Que** el sistema ejecute la validación de las reglas de negocio y determine de forma automatizada su condición de elegibilidad.
+
+## 🔁 Flujo Esperado
+
+- El usuario selecciona un beneficio de su interés e inicia la verificación desde la interfaz de usuario.
+- El cliente web envía una petición HTTP POST al endpoint `/api/beneficios/validar-elegibilidad` con los identificadores de usuario y beneficio.
+- El backend evalúa las condiciones paramétricas del convenio (promedio acumulado, estrato socioeconómico o pertenencia a entidad aliada).
+- Se retorna el resultado del análisis indicando si el estudiante es elegible o el motivo por el cual no cumple.
+
+## ✅ Criterios de Aceptación
+
+### 1. 🔍 Estructura y lógica del servicio
+
+- [ ] Se expone un endpoint POST que recibe `usuarioId` y `beneficioId` en el cuerpo de la petición.
+- [ ] Se evalúan las reglas de negocio asociadas al convenio (vigencia, promedio mínimo y estado del usuario).
+- [ ] Se emite un dictamen unívoco (`es_elegible: true/false`) con su respectiva justificación.
+
+### 2. 📆 Estructura de la información
+
+- [ ] Se responde con la siguiente estructura en JSON:
+
+```json
+{
+  "message": "Validación de elegibilidad completada exitosamente",
+  "data": {
+    "usuario_id": 101,
+    "beneficio_id": "BEN-CONV-01",
+    "es_elegible": true,
+    "motivo": "Cumple con el promedio académico y convenio empresarial activo",
+    "descuento_aplicable": 25.0
+  },
+  "success": true
+}
+```
+
+- [ ] Si el usuario no cumple las condiciones del beneficio, el backend retorna:
+
+```json
+{
+  "mensaje": "El usuario no cumple con las condiciones de elegibilidad para el beneficio",
+  "data": {
+    "usuario_id": 101,
+    "beneficio_id": "BEN-CONV-01",
+    "es_elegible": false,
+    "motivo": "Promedio acumulado inferior al mínimo requerido (3.8)",
+    "descuento_aplicable": 0.0
+  },
+  "success": false
+}
+```
+
+## 🔧 Notas Técnicas
+
+## 🚀 Endpoint – Validación de Elegibilidad de Beneficios
+
+- **Método HTTP:** `POST`
+- **Ruta:** `/api/beneficios/validar-elegibilidad`
+
+## 📤 Ejemplo de Respuesta JSON
+
+```json
+{
+  "mensaje": "Validación de elegibilidad completada exitosamente",
+  "data": {
+    "usuario_id": 101,
+    "beneficio_id": "BEN-CONV-01",
+    "es_elegible": true,
+    "motivo": "Cumple con el promedio académico y convenio empresarial activo",
+    "descuento_aplicable": 25.0
+  },
+  "success": true
+}
+```
+
+- [ ] Si el usuario no cumple las condiciones del beneficio, el backend retorna:
+
+```json
+{
+  "mensaje": "El usuario no cumple con las condiciones de elegibilidad para el beneficio",
+  "data": {
+    "usuario_id": 101,
+    "beneficio_id": "BEN-CONV-01",
+    "es_elegible": false,
+    "motivo": "Promedio acumulado inferior al mínimo requerido (3.8)",
+    "descuento_aplicable": 0.0
+  },
+  "success": false
+}
+```
+
+## 🧪 Requisitos de Pruebas
+
+## 🔍 Casos de Prueba Funcional
+
+### ✅ Caso 1: Estudiante elegible que cumple todos los criterios
+
+- **Precondición:** El usuario tiene promedio 4.2 y convenio activo con entidad aliada.
+- **Acción:** Ejecutar POST `/api/beneficios/validar-elegibilidad` con `{ "usuarioId": 101, "beneficioId": "BEN-CONV-01" }`.
+- **Resultado esperado:**
+  - Código HTTP 200 OK
+  - Campo `es_elegible` es `true`
+  - Campo `descuento_aplicable` es `25.0`
+  - Campo `success` es `true`
+
+### ✅ Caso 2: Estudiante no elegible por promedio insuficiente
+
+- **Precondición:** El usuario tiene promedio 3.4 y el beneficio requiere mínimo 3.8.
+- **Acción:** Ejecutar POST `/api/beneficios/validar-elegibilidad` con usuario de bajo rendimiento.
+- **Resultado esperado:**
+  - Código HTTP 200 OK
+  - Campo `es_elegible` es `false`
+  - Campo `motivo` indica la causa del rechazo
+  - Campo `success` es `false`
+
+### ✅ Caso 3: Tipos y consistencia de datos de evaluación
+
+- **Precondición:** Ejecución exitosa de la validación.
+- **Resultado esperado:** La respuesta JSON debe contener exactamente:
+  - "usuario_id" (número entero)
+  - "beneficio_id" (texto)
+  - "es_elegible" (booleano)
+  - "descuento_aplicable" (número decimal)
+  - "mensaje" (texto)
+
+### ❌ Caso 4: Identificador de beneficio inexistente en el catálogo
+
+- **Precondición:** El identificador del beneficio no existe en la base de datos.
+- **Acción:** Ejecutar POST con `{ "usuarioId": 101, "beneficioId": "BEN-INEXISTENTE" }`.
+- **Resultado esperado:**
+  - Código HTTP 404 Not Found
+  - Campo `mensaje` contiene: "El beneficio indicado no existe en el sistema"
+  - Campo `success` es `false`
+
+### ❌ Caso 5: Error en el motor de reglas de convenios
+
+- **Precondición:** El servicio de validación de convenios no responde.
+- **Acción:** Ejecutar el endpoint simulando falla del motor de reglas.
+- **Resultado esperado:**
+  - Código HTTP 503 Service Unavailable
+  - Campo `mensaje` contiene: "No fue posible comprobar la elegibilidad del beneficio"
+  - Campo `success` es `false`
+
+## ✅ Definición de Hecho
+
+# Historia: Verificar elegibilidad de beneficio
+
+## 📦 Alcance Funcional
+
+- [ ] El endpoint evalúa con fidelidad las reglas de elegibilidad del beneficio.
+- [ ] El dictamen emitido proporciona retroalimentación clara de aceptación o rechazo.
+- [ ] La respuesta JSON cumple rigurosamente con el contrato estipulado.
+
+## 🧪 Pruebas Completadas
+
+- [ ] Se ejecutaron pruebas unitarias para casos de aprobación y denegación de convenios.
+- [ ] Se probaron validaciones de frontera para promedio académico y estratos.
+- [ ] Las pruebas funcionales están documentadas y pasadas.
+
+## 📄 Documentación Técnica
+
+- [ ] Endpoint documentado en Swagger / OpenAPI.
+- [ ] Se describe:
+  - Propósito del endpoint
+  - Campos de entrada y salida
+  - Ejemplo de respuesta exitosa
+  - Ejemplo de error  
+
+## 🔐 Manejo de Errores
+
+- [ ] Se devuelve código HTTP 500 o 503 ante fallos de conexión o indisponibilidad del motor de reglas.
+- [ ] El campo `mensaje` en el JSON incluye un texto amigable y claro para el usuario técnico o frontend.
