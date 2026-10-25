@@ -1,0 +1,178 @@
+# '[HU-MATRICULA-05] Verificar cupo para matrícula'
+
+- **Módulo:** MOD-06 — Gestión de Matrículas
+- **Submódulo:** SUB-20 — Matrícula y Control de Cupos
+- **Funcionalidad:** FUN-099 — Verificar cupo para matrícula
+- **API relacionada:** API-INT-15 — Verificar cupo para matrícula
+
+## 📖 Historia de Usuario
+
+- **Dado** que un estudiante se encuentra en la etapa de preinscripción o conformación de horario de matrícula,
+- **Para** asegurar que exista capacidad disponible en el grupo deseado antes de proceder a la inscripción formal,
+- **Que** el sistema web verifique de manera instantánea el estado del cupo en el grupo académico correspondiente.
+
+## 🔁 Flujo Esperado
+
+- El estudiante selecciona una asignatura y hace clic sobre el grupo disponible en el asistente de matrícula.
+- El cliente web consume el endpoint GET `/api/matriculas/verificar-cupo/{grupoId}`.
+- El backend ejecuta una consulta con control de concurrencia sobre la ocupación del grupo seleccionado.
+- Se responde con el indicador de disponibilidad (`cupo_disponible: true/false`), cantidad de cupos restantes y estado del grupo.
+
+## ✅ Criterios de Aceptación
+
+### 1. 🔍 Estructura y lógica del servicio
+
+- [ ] Se expone un endpoint GET que recibe como parámetro de ruta el identificador del grupo.
+- [ ] Se verifica en tiempo real la disponibilidad garantizando la coherencia ante concurrencia de estudiantes.
+- [ ] Se informa si el grupo está ABIERTO con cupo o CERRADO por capacidad completa.
+
+### 2. 📆 Estructura de la información
+
+- [ ] Se responde con la siguiente estructura en JSON:
+
+```json
+{
+  "message": "Verificación de cupo exitosa",
+  "data": {
+    "grupo_id": "GRP-WS-A",
+    "cupo_disponible": true,
+    "cupos_restantes": 6,
+    "estado_grupo": "ABIERTO"
+  },
+  "success": true
+}
+```
+
+- [ ] Si el grupo no tiene cupos disponibles, el backend retorna:
+
+```json
+{
+  "mensaje": "No hay cupos disponibles para el grupo seleccionado",
+  "data": {
+    "grupo_id": "GRP-WS-A",
+    "cupo_disponible": false,
+    "cupos_restantes": 0,
+    "estado_grupo": "CERRADO"
+  },
+  "success": false
+}
+```
+
+## 🔧 Notas Técnicas
+
+## 🚀 Endpoint – Verificación de Cupos para Matrícula
+
+- **Método HTTP:** `GET`
+- **Ruta:** `/api/matriculas/verificar-cupo/{grupoId}`
+
+## 📤 Ejemplo de Respuesta JSON
+
+```json
+{
+  "mensaje": "Verificación de cupo exitosa",
+  "data": {
+    "grupo_id": "GRP-WS-A",
+    "cupo_disponible": true,
+    "cupos_restantes": 6,
+    "estado_grupo": "ABIERTO"
+  },
+  "success": true
+}
+```
+
+- [ ] Si el grupo no tiene cupos disponibles, el backend retorna:
+
+```json
+{
+  "mensaje": "No hay cupos disponibles para el grupo seleccionado",
+  "data": {
+    "grupo_id": "GRP-WS-A",
+    "cupo_disponible": false,
+    "cupos_restantes": 0,
+    "estado_grupo": "CERRADO"
+  },
+  "success": false
+}
+```
+
+## 🧪 Requisitos de Pruebas
+
+## 🔍 Casos de Prueba Funcional
+
+### ✅ Caso 1: Grupo con cupo disponible para inscripción
+
+- **Precondición:** El grupo 'GRP-WS-A' tiene 6 cupos libres en el periodo de matrícula.
+- **Acción:** Ejecutar el endpoint GET `/api/matriculas/verificar-cupo/GRP-WS-A`.
+- **Resultado esperado:**
+  - Código HTTP 200 OK
+  - Campo `cupo_disponible` es `true`
+  - Campo `cupos_restantes` es `6`
+  - Campo `estado_grupo` es `"ABIERTO"`
+
+### ✅ Caso 2: Grupo con capacidad máxima alcanzada
+
+- **Precondición:** El grupo 'GRP-WS-A' tiene 0 cupos libres.
+- **Acción:** Ejecutar el endpoint GET `/api/matriculas/verificar-cupo/GRP-WS-A`.
+- **Resultado esperado:**
+  - Código HTTP 200 OK
+  - Campo `cupo_disponible` es `false`
+  - Campo `cupos_restantes` es `0`
+  - Campo `estado_grupo` es `"CERRADO"`
+
+### ✅ Caso 3: Comprobación de campos obligatorios en respuesta
+
+- **Precondición:** Ejecución exitosa de la verificación de cupos.
+- **Resultado esperado:** La respuesta JSON debe contener exactamente:
+  - "grupo_id" (texto)
+  - "cupo_disponible" (booleano)
+  - "cupos_restantes" (número entero)
+  - "estado_grupo" (texto)
+  - "success" (booleano)
+
+### ❌ Caso 4: Identificador de grupo con formato no admitido
+
+- **Precondición:** El parámetro de ruta contiene caracteres no permitidos.
+- **Acción:** Ejecutar GET `/api/matriculas/verificar-cupo/GRP--%%`.
+- **Resultado esperado:**
+  - Código HTTP 400 Bad Request
+  - Campo `mensaje` contiene: "Identificador de grupo no válido"
+  - Campo `success` es `false`
+
+### ❌ Caso 5: Error en la base de datos transaccional de matrículas
+
+- **Precondición:** El motor de base de datos no está disponible.
+- **Acción:** Ejecutar la petición bajo indisponibilidad de servidor.
+- **Resultado esperado:**
+  - Código HTTP 503 Service Unavailable
+  - Campo `mensaje` contiene: "No fue posible verificar el cupo del grupo"
+  - Campo `success` es `false`
+
+## ✅ Definición de Hecho
+
+# Historia: Verificar cupo para matrícula
+
+## 📦 Alcance Funcional
+
+- [ ] El endpoint consulta la disponibilidad de cupos en tiempo real con precisión.
+- [ ] La respuesta entrega los campos requeridos para habilitar o deshabilitar la selección en la interfaz.
+- [ ] Se cumple con el contrato JSON estipulado en el inventario de APIs.
+
+## 🧪 Pruebas Completadas
+
+- [ ] Se ejecutaron pruebas unitarias para evaluar condiciones de grupos llenos y con cupo.
+- [ ] Se validó el comportamiento ante concurrencia de consultas simultáneas.
+- [ ] Las pruebas funcionales están documentadas y pasadas.
+
+## 📄 Documentación Técnica
+
+- [ ] Endpoint documentado en Swagger / OpenAPI.
+- [ ] Se describe:
+  - Propósito del endpoint
+  - Campos de entrada y salida
+  - Ejemplo de respuesta exitosa
+  - Ejemplo de error  
+
+## 🔐 Manejo de Errores
+
+- [ ] Se devuelve código HTTP 500 o 503 cuando la base de datos se encuentra fuera de servicio.
+- [ ] El campo `mensaje` en el JSON incluye un texto amigable y claro para el usuario técnico o frontend.
