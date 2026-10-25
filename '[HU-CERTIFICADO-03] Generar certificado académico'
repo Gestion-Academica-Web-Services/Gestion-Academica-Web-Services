@@ -1,0 +1,183 @@
+# '[HU-CERTIFICADO-03] Generar certificado académico'
+
+- **Módulo:** MOD-07 — Gestión de Certificaciones
+- **Submódulo:** SUB-22 — Emisión de Certificados
+- **Funcionalidad:** FUN-108 — Generar certificado
+- **API relacionada:** API-INT-19 — Generar certificado
+
+## 📖 Historia de Usuario
+
+- **Dado** que un estudiante que culminó satisfactoriamente su plan de estudios solicita su constancia de grado o notas,
+- **Para** obtener un certificado académico oficial con código criptográfico de verificación para trámites laborales o educativos,
+- **Que** el sistema valide la culminación académica, emita el certificado digital y genere el enlace seguro de descarga.
+
+## 🔁 Flujo Esperado
+
+- El estudiante ingresa al módulo de certificaciones, selecciona el tipo de certificado requerido y confirma la solicitud.
+- La interfaz envía una petición HTTP POST a `/api/certificados/generar` enviando `usuarioId` y `programaId`.
+- El backend comprueba en la historia académica que el total de créditos aprobados coincida con el plan curricular.
+- Se genera el registro del certificado, se asigna un código alfanumérico único de verificación y se entrega la URL de descarga en JSON.
+
+## ✅ Criterios de Aceptación
+
+### 1. 🔍 Estructura y lógica del servicio
+
+- [ ] Se expone un endpoint POST que recibe `usuarioId` y `programaId` en el cuerpo.
+- [ ] Se verifica que el estudiante haya aprobado el 100 % de los créditos del programa académico.
+- [ ] Se genera un código único de verificación para validación pública posterior.
+
+### 2. 📆 Estructura de la información
+
+- [ ] Se responde con la siguiente estructura en JSON:
+
+```json
+{
+  "message": "Certificado generado exitosamente",
+  "data": {
+    "certificado_id": "CERT-2026-789",
+    "usuario_id": 101,
+    "nombre_estudiante": "Carlos Pérez",
+    "programa_academico": "Ingeniería de Sistemas",
+    "tipo_certificado": "CULMINACION_ESTUDIOS",
+    "codigo_verificacion": "UTS-VERIF-98745A",
+    "fecha_emision": "2026-10-24T11:00:00Z",
+    "url_descarga": "https://servicios.uts.edu.co/descargas/certificados/UTS-VERIF-98745A.pdf"
+  },
+  "success": true
+}
+```
+
+- [ ] Si el estudiante no cumple con la culminación de créditos, el backend retorna:
+
+```json
+{
+  "mensaje": "No se puede generar el certificado: el estudiante no ha culminado el plan de estudios",
+  "data": {
+    "usuario_id": 101,
+    "creditos_aprobados": 145,
+    "creditos_totales": 160
+  },
+  "success": false
+}
+```
+
+## 🔧 Notas Técnicas
+
+## 🚀 Endpoint – Generación de Certificado Académico
+
+- **Método HTTP:** `POST`
+- **Ruta:** `/api/certificados/generar`
+
+## 📤 Ejemplo de Respuesta JSON
+
+```json
+{
+  "mensaje": "Certificado generado exitosamente",
+  "data": {
+    "certificado_id": "CERT-2026-789",
+    "usuario_id": 101,
+    "nombre_estudiante": "Carlos Pérez",
+    "programa_academico": "Ingeniería de Sistemas",
+    "tipo_certificado": "CULMINACION_ESTUDIOS",
+    "codigo_verificacion": "UTS-VERIF-98745A",
+    "fecha_emision": "2026-10-24T11:00:00Z",
+    "url_descarga": "https://servicios.uts.edu.co/descargas/certificados/UTS-VERIF-98745A.pdf"
+  },
+  "success": true
+}
+```
+
+- [ ] Si el estudiante no cumple con la culminación de créditos, el backend retorna:
+
+```json
+{
+  "mensaje": "No se puede generar el certificado: el estudiante no ha culminado el plan de estudios",
+  "data": {
+    "usuario_id": 101,
+    "creditos_aprobados": 145,
+    "creditos_totales": 160
+  },
+  "success": false
+}
+```
+
+## 🧪 Requisitos de Pruebas
+
+## 🔍 Casos de Prueba Funcional
+
+### ✅ Caso 1: Generación exitosa de certificado para estudiante graduado
+
+- **Precondición:** El estudiante '101' tiene aprobados los 160 créditos de 'PROG-ING-01'.
+- **Acción:** Ejecutar POST `/api/certificados/generar` con los identificadores correspondientes.
+- **Resultado esperado:**
+  - Código HTTP 201 Created
+  - Campo `codigo_verificacion` generado con prefijo `"UTS-VERIF-"`
+  - Campo `url_descarga` contiene enlace válido al archivo PDF
+  - Campo `success` es `true`
+
+### ✅ Caso 2: Intento de generación con plan de estudios incompleto
+
+- **Precondición:** El estudiante solo cuenta con 145 de los 160 créditos requeridos.
+- **Acción:** Ejecutar POST `/api/certificados/generar`.
+- **Resultado esperado:**
+  - Código HTTP 422 Unprocessable Entity
+  - Campo `mensaje` contiene: "No se puede generar el certificado: el estudiante no ha culminado el plan de estudios"
+  - Campo `success` es `false`
+
+### ✅ Caso 3: Consistencia de campos y estructura en respuesta
+
+- **Precondición:** Ejecución exitosa de la generación de certificado.
+- **Resultado esperado:** La respuesta JSON debe contener exactamente:
+  - "certificado_id" (texto)
+  - "nombre_estudiante" (texto)
+  - "codigo_verificacion" (texto)
+  - "fecha_emision" (texto ISO 8601)
+  - "url_descarga" (texto URL)
+
+### ❌ Caso 4: Identificador de programa o usuario no encontrado
+
+- **Precondición:** El usuario o programa académico no existe en los registros institucionales.
+- **Acción:** Ejecutar POST con `{ "usuarioId": 99999, "programaId": "PROG-INVALIDO" }`.
+- **Resultado esperado:**
+  - Código HTTP 404 Not Found
+  - Campo `mensaje` contiene: "El usuario o programa académico especificado no existe"
+  - Campo `success` es `false`
+
+### ❌ Caso 5: Error en el servicio de generación documental
+
+- **Precondición:** El motor de renderizado de certificados o base de datos no está disponible.
+- **Acción:** Ejecutar el endpoint bajo fallo del servicio de generación.
+- **Resultado esperado:**
+  - Código HTTP 503 Service Unavailable
+  - Campo `mensaje` contiene: "No fue posible procesar la generación del certificado"
+  - Campo `success` es `false`
+
+## ✅ Definición de Hecho
+
+# Historia: Generar certificado académico
+
+## 📦 Alcance Funcional
+
+- [ ] El endpoint genera el documento digital y asigna el código único de validación.
+- [ ] Se verifica rigurosamente el cumplimiento total de los requisitos de culminación.
+- [ ] La respuesta JSON cumple plenamente con el contrato estipulado en el inventario.
+
+## 🧪 Pruebas Completadas
+
+- [ ] Se ejecutaron pruebas unitarias para cálculo de créditos aprobados y generación de código.
+- [ ] Se probaron casos de estudiantes sin créditos completos y parámetros incorrectos.
+- [ ] Las pruebas funcionales están documentadas y pasadas.
+
+## 📄 Documentación Técnica
+
+- [ ] Endpoint documentado en Swagger / OpenAPI.
+- [ ] Se describe:
+  - Propósito del endpoint
+  - Campos de entrada y salida
+  - Ejemplo de respuesta exitosa
+  - Ejemplo de error  
+
+## 🔐 Manejo de Errores
+
+- [ ] Se devuelve código HTTP 500 o 503 en situaciones de falla del repositorio o motor de documentos.
+- [ ] El campo `mensaje` en el JSON incluye un texto amigable y claro para el usuario técnico o frontend.
