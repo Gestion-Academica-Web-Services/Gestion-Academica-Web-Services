@@ -1,0 +1,181 @@
+# '[HU-CERTIFICADO-09] Validar autenticidad de certificado'
+
+- **Módulo:** MOD-07 — Gestión de Certificaciones
+- **Submódulo:** SUB-24 — Validación Externa y Consulta Pública
+- **Funcionalidad:** FUN-116 — Validar autenticidad
+- **API relacionada:** API-INT-20 — Validar certificado
+
+## 📖 Historia de Usuario
+
+- **Dado** que una entidad externa, empresa contratante o ciudadano tiene en su poder un certificado emitido por la institución,
+- **Para** verificar de forma pública y confiable su autenticidad y los datos académicos del titular,
+- **Que** el sistema consulte el código de verificación ingresado y confirme si el documento es válido y original.
+
+## 🔁 Flujo Esperado
+
+- El consultante ingresa el código de validación alfanumérico en el portal público de consulta de certificados.
+- El cliente web consume el endpoint GET `/api/certificados/validar/{codigoValidacion}`.
+- El backend busca el código en el registro institucional de certificados emitidos.
+- Si existe, se devuelven los datos de titularidad, programa cursado, fecha de emisión y estado de validez en JSON.
+
+## ✅ Criterios de Aceptación
+
+### 1. 🔍 Estructura y lógica del servicio
+
+- [ ] Se expone un endpoint público GET que recibe el código de validación en la ruta.
+- [ ] Se consulta el registro histórico de certificados emitidos sin requerir autenticación previa.
+- [ ] Se retorna el dictamen de validez (`VALIDO` o `NO_ENCONTRADO`) junto con los datos oficiales.
+
+### 2. 📆 Estructura de la información
+
+- [ ] Se responde con la siguiente estructura en JSON:
+
+```json
+{
+  "message": "Validación de certificado exitosa",
+  "data": {
+    "codigo_validacion": "UTS-VERIF-98745A",
+    "estado_validez": "VALIDO",
+    "nombre_titular": "Carlos Pérez",
+    "identificacion": "1098765432",
+    "programa_cursado": "Ingeniería de Sistemas",
+    "fecha_emision": "2026-10-24",
+    "entidad_emisora": "Unidades Tecnológicas de Santander"
+  },
+  "success": true
+}
+```
+
+- [ ] Si el código no existe o no corresponde a un certificado válido, el backend retorna:
+
+```json
+{
+  "mensaje": "El código de verificación ingresado no corresponde a ningún certificado emitido",
+  "data": {
+    "codigo_validacion": "UTS-INVALIDO-00",
+    "estado_validez": "NO_ENCONTRADO"
+  },
+  "success": false
+}
+```
+
+## 🔧 Notas Técnicas
+
+## 🚀 Endpoint – Validación Pública de Certificados
+
+- **Método HTTP:** `GET`
+- **Ruta:** `/api/certificados/validar/{codigoValidacion}`
+
+## 📤 Ejemplo de Respuesta JSON
+
+```json
+{
+  "mensaje": "Validación de certificado exitosa",
+  "data": {
+    "codigo_validacion": "UTS-VERIF-98745A",
+    "estado_validez": "VALIDO",
+    "nombre_titular": "Carlos Pérez",
+    "identificacion": "1098765432",
+    "programa_cursado": "Ingeniería de Sistemas",
+    "fecha_emision": "2026-10-24",
+    "entidad_emisora": "Unidades Tecnológicas de Santander"
+  },
+  "success": true
+}
+```
+
+- [ ] Si el código no existe o no corresponde a un certificado válido, el backend retorna:
+
+```json
+{
+  "mensaje": "El código de verificación ingresado no corresponde a ningún certificado emitido",
+  "data": {
+    "codigo_validacion": "UTS-INVALIDO-00",
+    "estado_validez": "NO_ENCONTRADO"
+  },
+  "success": false
+}
+```
+
+## 🧪 Requisitos de Pruebas
+
+## 🔍 Casos de Prueba Funcional
+
+### ✅ Caso 1: Validación exitosa de certificado legalmente emitido
+
+- **Precondición:** El código 'UTS-VERIF-98745A' está registrado en la base de datos de certificaciones.
+- **Acción:** Ejecutar GET `/api/certificados/validar/UTS-VERIF-98745A`.
+- **Resultado esperado:**
+  - Código HTTP 200 OK
+  - Campo `estado_validez` es `"VALIDO"`
+  - Campo `nombre_titular` es `"Carlos Pérez"`
+  - Campo `entidad_emisora` es `"Unidades Tecnológicas de Santander"`
+
+### ✅ Caso 2: Código inexistente o certificado no emitido
+
+- **Precondición:** El código 'UTS-INVALIDO-00' no existe en el sistema.
+- **Acción:** Ejecutar GET `/api/certificados/validar/UTS-INVALIDO-00`.
+- **Resultado esperado:**
+  - Código HTTP 404 Not Found
+  - Campo `estado_validez` es `"NO_ENCONTRADO"`
+  - Campo `mensaje` contiene: "El código de verificación ingresado no corresponde a ningún certificado emitido"
+  - Campo `success` es `false`
+
+### ✅ Caso 3: Validación de esquema JSON de verificación
+
+- **Precondición:** Ejecución exitosa de la consulta de verificación.
+- **Resultado esperado:** La respuesta JSON debe contener exactamente los campos:
+  - "codigo_validacion" (texto)
+  - "estado_validez" (texto)
+  - "nombre_titular" (texto)
+  - "identificacion" (texto)
+  - "programa_cursado" (texto)
+  - "fecha_emision" (texto)
+
+### ❌ Caso 4: Código con formato o longitud errónea
+
+- **Precondición:** Se envía un código con caracteres no permitidos en la ruta.
+- **Acción:** Ejecutar GET `/api/certificados/validar/CODE//INVALID`.
+- **Resultado esperado:**
+  - Código HTTP 400 Bad Request
+  - Campo `mensaje` contiene: "Formato de código de validación no válido"
+  - Campo `success` es `false`
+
+### ❌ Caso 5: Error en la base de datos pública de certificados
+
+- **Precondición:** El servicio de validación pública pierde conexión con la base de datos.
+- **Acción:** Ejecutar el endpoint bajo simulación de caída de base de datos.
+- **Resultado esperado:**
+  - Código HTTP 503 Service Unavailable
+  - Campo `mensaje` contiene: "No fue posible validar la autenticidad del certificado"
+  - Campo `success` es `false`
+
+## ✅ Definición de Hecho
+
+# Historia: Validar autenticidad de certificado
+
+## 📦 Alcance Funcional
+
+- [ ] El endpoint permite la validación ágil y pública de la autenticidad del documento.
+- [ ] La información devuelta salvaguarda datos sensibles pero confirma fehacientemente el grado o constancia.
+- [ ] La respuesta JSON cumple plenamente con el contrato estipulado en el inventario.
+
+## 🧪 Pruebas Completadas
+
+- [ ] Se ejecutaron pruebas unitarias para códigos válidos, inexistentes y con formato erróneo.
+- [ ] Se probó el acceso anónimo sin requerir tokens de autenticación de usuario.
+- [ ] Las pruebas funcionales están documentadas y pasadas.
+
+## 📄 Documentación Técnica
+
+- [ ] Endpoint documentado en Swagger / OpenAPI.
+- [ ] Se describe:
+  - Propósito del endpoint
+  - Campos de entrada y salida
+  - Ejemplo de respuesta exitosa
+  - Ejemplo de error  
+
+## 🔐 Manejo de Errores
+
+- [ ] Se devuelve código HTTP 500 o 503 ante fallos en el motor de base de datos o servidor.
+- [ ] El campo `mensaje` en el JSON incluye un texto amigable y claro para el usuario técnico o frontend.
