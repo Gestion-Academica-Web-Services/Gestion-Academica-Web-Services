@@ -1,0 +1,180 @@
+# '[HU-FINANCIACION-05] Registrar solicitud de financiación'
+
+- **Módulo:** MOD-05 — Gestión de Financiación
+- **Submódulo:** SUB-17 — Solicitudes de Financiación
+- **Funcionalidad:** FUN-081 — Registrar solicitud
+- **API relacionada:** API-INT-13 — Registrar solicitud de financiación
+
+## 📖 Historia de Usuario
+
+- **Dado** que un estudiante cuenta con una evaluación de viabilidad aprobada y escoge una modalidad de crédito institucional,
+- **Para** formalizar su petición de crédito educativo ante el departamento de financiamiento de la institución,
+- **Que** el sistema registre la solicitud de crédito con el monto, modalidad y cuotas seleccionadas, dejándola en estado de revisión.
+
+## 🔁 Flujo Esperado
+
+- El estudiante selecciona la modalidad de financiación (cuotas directas, libranza o pagaré) y confirma el monto a financiar.
+- La interfaz realiza una petición POST al endpoint `/api/financiacion/solicitudes` con los datos del crédito.
+- El backend valida la existencia del usuario, programa y modalidad, creando un registro de solicitud con estado `EN_REVISION`.
+- El sistema asigna un código único de radicado de solicitud (`solicitud_id`) y retorna los detalles consolidados en JSON.
+
+## ✅ Criterios de Aceptación
+
+### 1. 🔍 Estructura y lógica del servicio
+
+- [ ] Se expone un endpoint POST que recibe `usuarioId`, `programaId` y `modalidadId`.
+- [ ] Se valida que el usuario no cuente con otra solicitud de financiación activa en trámite para el mismo periodo.
+- [ ] Se almacena la solicitud en estado inicial `EN_REVISION` generando su identificador único.
+
+### 2. 📆 Estructura de la información
+
+- [ ] Se responde con la siguiente estructura en JSON:
+
+```json
+{
+  "message": "Solicitud de financiación registrada exitosamente",
+  "data": {
+    "solicitud_id": "SOL-FIN-1045",
+    "usuario_id": 101,
+    "programa_id": "PROG-ING-01",
+    "modalidad_id": "MOD-CUOTAS-DIR",
+    "monto_solicitado": 2800000.0,
+    "numero_cuotas": 5,
+    "estado": "EN_REVISION"
+  },
+  "success": true
+}
+```
+
+- [ ] Si la solicitud no puede ser registrada por conflicto de estado, el backend retorna:
+
+```json
+{
+  "mensaje": "No fue posible registrar la solicitud de financiación",
+  "data": {
+    "error": "El usuario ya cuenta con una solicitud activa en trámite",
+    "solicitud_id": null
+  },
+  "success": false
+}
+```
+
+## 🔧 Notas Técnicas
+
+## 🚀 Endpoint – Registro de Solicitud de Financiación
+
+- **Método HTTP:** `POST`
+- **Ruta:** `/api/financiacion/solicitudes`
+
+## 📤 Ejemplo de Respuesta JSON
+
+```json
+{
+  "mensaje": "Solicitud de financiación registrada exitosamente",
+  "data": {
+    "solicitud_id": "SOL-FIN-1045",
+    "usuario_id": 101,
+    "programa_id": "PROG-ING-01",
+    "modalidad_id": "MOD-CUOTAS-DIR",
+    "monto_solicitado": 2800000.0,
+    "numero_cuotas": 5,
+    "estado": "EN_REVISION"
+  },
+  "success": true
+}
+```
+
+- [ ] Si la solicitud no puede ser registrada por conflicto de estado, el backend retorna:
+
+```json
+{
+  "mensaje": "No fue posible registrar la solicitud de financiación",
+  "data": {
+    "error": "El usuario ya cuenta con una solicitud activa en trámite",
+    "solicitud_id": null
+  },
+  "success": false
+}
+```
+
+## 🧪 Requisitos de Pruebas
+
+## 🔍 Casos de Prueba Funcional
+
+### ✅ Caso 1: Radicación exitosa de solicitud de crédito
+
+- **Precondición:** El usuario no tiene solicitudes abiertas para el periodo y la modalidad es válida.
+- **Acción:** Ejecutar POST `/api/financiacion/solicitudes` con payload completo de crédito.
+- **Resultado esperado:**
+  - Código HTTP 201 Created
+  - Campo `solicitud_id` generado con prefijo `"SOL-FIN-"`
+  - Campo `estado` es `"EN_REVISION"`
+  - Campo `success` es `true`
+
+### ✅ Caso 2: Intento de radicación duplicada en el mismo periodo
+
+- **Precondición:** El usuario ya tiene una solicitud 'SOL-FIN-1044' en estado 'EN_REVISION'.
+- **Acción:** Ejecutar POST `/api/financiacion/solicitudes` para el mismo usuario y programa.
+- **Resultado esperado:**
+  - Código HTTP 409 Conflict
+  - Campo `mensaje` contiene: "No fue posible registrar la solicitud de financiación"
+  - Campo `solicitud_id` es `null`
+  - Campo `success` es `false`
+
+### ✅ Caso 3: Integridad de datos y esquema de solicitud
+
+- **Precondición:** Ejecución exitosa de la creación de la solicitud.
+- **Resultado esperado:** La respuesta JSON debe contener exactamente:
+  - "solicitud_id" (texto)
+  - "usuario_id" (número entero)
+  - "monto_solicitado" (número decimal)
+  - "numero_cuotas" (número entero)
+  - "estado" (texto)
+
+### ❌ Caso 4: Modalidad de financiación no existente
+
+- **Precondición:** Se envía un código de modalidad no parametrizado en la institución.
+- **Acción:** Ejecutar POST con `{ "modalidadId": "MOD-INEXISTENTE" }`.
+- **Resultado esperado:**
+  - Código HTTP 400 Bad Request
+  - Campo `mensaje` contiene: "La modalidad de financiación seleccionada no es válida"
+  - Campo `success` es `false`
+
+### ❌ Caso 5: Error en el servicio transaccional de créditos
+
+- **Precondición:** Fallo transaccional en la base de datos de créditos.
+- **Acción:** Ejecutar el endpoint simulando indisponibilidad del servicio de persistencia.
+- **Resultado esperado:**
+  - Código HTTP 503 Service Unavailable
+  - Campo `mensaje` contiene: "No fue posible registrar la solicitud de financiación en el sistema"
+  - Campo `success` es `false`
+
+## ✅ Definición de Hecho
+
+# Historia: Registrar solicitud de financiación
+
+## 📦 Alcance Funcional
+
+- [ ] El endpoint registra la solicitud y genera el identificador único de seguimiento.
+- [ ] Se previene la radicación múltiple de solicitudes para un mismo usuario y periodo.
+- [ ] La respuesta JSON cumple estrictamente con el contrato de Web Services.
+
+## 🧪 Pruebas Completadas
+
+- [ ] Se ejecutaron pruebas unitarias para inserción de solicitudes y detección de duplicados.
+- [ ] Se probaron casos de modalidades inválidas y montos fuera de los límites autorizados.
+- [ ] Las pruebas funcionales están documentadas y pasadas.
+
+## 📄 Documentación Técnica
+
+- [ ] Endpoint documentado en Swagger / OpenAPI.
+- [ ] Se describe:
+  - Propósito del endpoint
+  - Campos de entrada y salida
+  - Ejemplo de respuesta exitosa
+  - Ejemplo de error  
+
+## 🔐 Manejo de Errores
+
+- [ ] Se devuelve código HTTP 500 o 503 ante caídas de la base de datos o fallos del servidor.
+- [ ] El campo `mensaje` en el JSON incluye un texto amigable y claro para el usuario técnico o frontend.
