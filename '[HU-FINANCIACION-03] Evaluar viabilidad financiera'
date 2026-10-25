@@ -1,0 +1,185 @@
+# '[HU-FINANCIACION-03] Evaluar viabilidad financiera'
+
+- **Módulo:** MOD-05 — Gestión de Financiación
+- **Submódulo:** SUB-16 — Información y Evaluación Financiera
+- **Funcionalidad:** FUN-079 — Evaluar viabilidad financiera
+- **API relacionada:** API-INT-11 — Evaluar viabilidad financiera
+
+## 📖 Historia de Usuario
+
+- **Dado** que un estudiante requiere financiar el valor de su matrícula y suministra su información de ingresos y egresos,
+- **Para** conocer su capacidad de endeudamiento y determinar si es apto para un plan de financiación a cuotas,
+- **Que** el sistema procese el estudio financiero mediante un servicio web y calcule el monto máximo y número de cuotas aprobadas.
+
+## 🔁 Flujo Esperado
+
+- El estudiante ingresa sus ingresos mensuales, egresos y el valor del programa a cursar en el módulo de crédito.
+- La interfaz realiza una petición POST al endpoint `/api/financiacion/evaluar-viabilidad` con los datos financieros.
+- El backend procesa el cálculo de la capacidad de endeudamiento neto y contrasta contra las políticas de riesgo institucional.
+- Se genera una evaluación con número de radicado, dictamen (VIABLE o NO_VIABLE), monto financiable y se retorna al usuario.
+
+## ✅ Criterios de Aceptación
+
+### 1. 🔍 Estructura y lógica del servicio
+
+- [ ] Se expone un endpoint POST que recibe `usuarioId`, `programaId`, `ingresos` y `egresos`.
+- [ ] Se valida que los montos económicos sean valores numéricos positivos.
+- [ ] Se aplica la fórmula institucional de capacidad de endeudamiento emitiendo un identificador único de evaluación.
+
+### 2. 📆 Estructura de la información
+
+- [ ] Se responde con la siguiente estructura en JSON:
+
+```json
+{
+  "message": "Evaluación de viabilidad financiera completada",
+  "data": {
+    "evaluacion_id": "EVAL-2026-089",
+    "usuario_id": 101,
+    "programa_id": "PROG-ING-01",
+    "capacidad_endeudamiento": 850000.0,
+    "resultado_viabilidad": "VIABLE",
+    "monto_maximo_financiable": 3500000.0,
+    "plazo_maximo_meses": 6
+  },
+  "success": true
+}
+```
+
+- [ ] Si el resultado no es favorable por capacidad de pago insuficiente, el backend retorna:
+
+```json
+{
+  "mensaje": "Evaluación completada: No cumple con la capacidad de pago requerida",
+  "data": {
+    "evaluacion_id": "EVAL-2026-090",
+    "usuario_id": 101,
+    "resultado_viabilidad": "NO_VIABLE",
+    "monto_maximo_financiable": 0.0
+  },
+  "success": false
+}
+```
+
+## 🔧 Notas Técnicas
+
+## 🚀 Endpoint – Evaluación de Viabilidad Financiera
+
+- **Método HTTP:** `POST`
+- **Ruta:** `/api/financiacion/evaluar-viabilidad`
+
+## 📤 Ejemplo de Respuesta JSON
+
+```json
+{
+  "mensaje": "Evaluación de viabilidad financiera completada",
+  "data": {
+    "evaluacion_id": "EVAL-2026-089",
+    "usuario_id": 101,
+    "programa_id": "PROG-ING-01",
+    "capacidad_endeudamiento": 850000.0,
+    "resultado_viabilidad": "VIABLE",
+    "monto_maximo_financiable": 3500000.0,
+    "plazo_maximo_meses": 6
+  },
+  "success": true
+}
+```
+
+- [ ] Si el resultado no es favorable por capacidad de pago insuficiente, el backend retorna:
+
+```json
+{
+  "mensaje": "Evaluación completada: No cumple con la capacidad de pago requerida",
+  "data": {
+    "evaluacion_id": "EVAL-2026-090",
+    "usuario_id": 101,
+    "resultado_viabilidad": "NO_VIABLE",
+    "monto_maximo_financiable": 0.0
+  },
+  "success": false
+}
+```
+
+## 🧪 Requisitos de Pruebas
+
+## 🔍 Casos de Prueba Funcional
+
+### ✅ Caso 1: Solicitud con balance financiero positivo y viable
+
+- **Precondición:** El usuario reporta ingresos de $ 2.500.000 y egresos de $ 1.000.000.
+- **Acción:** Ejecutar POST `/api/financiacion/evaluar-viabilidad` con los valores indicados.
+- **Resultado esperado:**
+  - Código HTTP 200 OK
+  - Campo `resultado_viabilidad` es `"VIABLE"`
+  - Campo `monto_maximo_financiable` mayor a 0
+  - Campo `evaluacion_id` generado con formato institucional
+
+### ✅ Caso 2: Solicitud con egresos que superan la capacidad de endeudamiento
+
+- **Precondición:** El usuario reporta ingresos de $ 1.200.000 y egresos de $ 1.150.000.
+- **Acción:** Ejecutar POST `/api/financiacion/evaluar-viabilidad`.
+- **Resultado esperado:**
+  - Código HTTP 200 OK
+  - Campo `resultado_viabilidad` es `"NO_VIABLE"`
+  - Campo `monto_maximo_financiable` es `0.0`
+  - Campo `mensaje` advierte la insuficiencia de capacidad de pago
+
+### ✅ Caso 3: Validación de campos de la evaluación financiera
+
+- **Precondición:** Ejecución exitosa del endpoint.
+- **Resultado esperado:** La respuesta JSON debe contener exactamente:
+  - "evaluacion_id" (texto)
+  - "usuario_id" (número entero)
+  - "capacidad_endeudamiento" (número decimal)
+  - "resultado_viabilidad" (texto)
+  - "monto_maximo_financiable" (número decimal)
+  - "success" (booleano)
+
+### ❌ Caso 4: Montos negativos o formato numérico inválido
+
+- **Precondición:** El cliente envía valores negativos en ingresos o egresos.
+- **Acción:** Ejecutar POST con `{ "ingresos": -500000, "egresos": 100000 }`.
+- **Resultado esperado:**
+  - Código HTTP 400 Bad Request
+  - Campo `mensaje` contiene: "Los montos de ingresos y egresos deben ser valores positivos"
+  - Campo `success` es `false`
+
+### ❌ Caso 5: Error en el servicio de scoring financiero
+
+- **Precondición:** El módulo de cálculo o base de datos de créditos no responde.
+- **Acción:** Ejecutar el endpoint simulando desconexión del servicio.
+- **Resultado esperado:**
+  - Código HTTP 503 Service Unavailable
+  - Campo `mensaje` contiene: "No fue posible evaluar la viabilidad financiera"
+  - Campo `success` es `false`
+
+## ✅ Definición de Hecho
+
+# Historia: Evaluar viabilidad financiera
+
+## 📦 Alcance Funcional
+
+- [ ] El endpoint ejecuta los algoritmos de capacidad financiera de forma precisa.
+- [ ] La evaluación genera un identificador único para trazabilidad de la solicitud.
+- [ ] La respuesta JSON cumple fielmente con el contrato definido.
+
+## 🧪 Pruebas Completadas
+
+- [ ] Se ejecutaron pruebas unitarias para verificar los cálculos de endeudamiento.
+- [ ] Se probaron casos de montos límites, valores negativos y estudiantes sin historial.
+- [ ] Las pruebas funcionales están documentadas y pasadas.
+
+## 📄 Documentación Técnica
+
+- [ ] Endpoint documentado en Swagger / OpenAPI.
+- [ ] Se describe:
+  - Propósito del endpoint
+  - Campos de entrada y salida
+  - Ejemplo de respuesta exitosa
+  - Ejemplo de error  
+
+## 🔐 Manejo de Errores
+
+- [ ] Se devuelve código HTTP 500 o 503 cuando ocurre una falla en el motor financiero.
+- [ ] El campo `mensaje` en el JSON incluye un texto amigable y claro para el usuario técnico o frontend.
