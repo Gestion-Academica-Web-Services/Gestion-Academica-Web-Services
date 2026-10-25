@@ -1,0 +1,180 @@
+# '[HU-MATRICULA-08] Aplicar beneficio a matrícula'
+
+- **Módulo:** MOD-06 — Gestión de Matrículas
+- **Submódulo:** SUB-21 — Condiciones y Formalización
+- **Funcionalidad:** FUN-102 — Aplicar beneficio a matrícula
+- **API relacionada:** API-INT-16 — Aplicar beneficio a matrícula
+
+## 📖 Historia de Usuario
+
+- **Dado** que un estudiante cuenta con un beneficio de descuento debidamente validado y una matrícula en estado de liquidación,
+- **Para** que el descuento pactado en el convenio se aplique efectivamente sobre la tarifa total de la matrícula,
+- **Que** el sistema calcule el nuevo valor a pagar y vincule el beneficio a la orden de matrícula correspondiente.
+
+## 🔁 Flujo Esperado
+
+- El estudiante o funcionario selecciona el beneficio aprobado en la pantalla de liquidación de matrícula.
+- El cliente web envía una petición HTTP POST a `/api/matriculas/{matriculaId}/beneficios` con el `beneficioId`.
+- El backend comprueba la validez del beneficio y recalcula el monto restando el porcentaje estipulado.
+- Se actualiza el registro de la matrícula en la base de datos con el valor descontado y se entrega el detalle de la liquidación.
+
+## ✅ Criterios de Aceptación
+
+### 1. 🔍 Estructura y lógica del servicio
+
+- [ ] Se expone un endpoint POST que recibe `matriculaId` como parámetro de ruta y `beneficioId` en el cuerpo.
+- [ ] Se valida que el beneficio esté vigente y no haya sido aplicado previamente a la misma matrícula.
+- [ ] Se recalcula el valor final a pagar de forma exacta (`valor_matricula_original` - `valor_descuento`).
+
+### 2. 📆 Estructura de la información
+
+- [ ] Se responde con la siguiente estructura en JSON:
+
+```json
+{
+  "message": "Beneficio aplicado exitosamente a la matrícula",
+  "data": {
+    "matricula_id": "MAT-2026-054",
+    "beneficio_id": "BEN-CONV-01",
+    "valor_matricula_original": 3200000.0,
+    "porcentaje_descuento": 25.0,
+    "valor_descuento": 800000.0,
+    "valor_final_a_pagar": 2400000.0,
+    "estado_matricula": "BENEFICIO_APLICADO"
+  },
+  "success": true
+}
+```
+
+- [ ] Si el beneficio no puede aplicarse por inconsistencia de condiciones, el backend retorna:
+
+```json
+{
+  "mensaje": "No fue posible aplicar el beneficio a la matrícula indicada",
+  "data": {
+    "matricula_id": "MAT-2026-054",
+    "motivo": "El beneficio ya fue aplicado previamente o no se encuentra vigente"
+  },
+  "success": false
+}
+```
+
+## 🔧 Notas Técnicas
+
+## 🚀 Endpoint – Aplicación de Beneficios a Matrícula
+
+- **Método HTTP:** `POST`
+- **Ruta:** `/api/matriculas/{matriculaId}/beneficios`
+
+## 📤 Ejemplo de Respuesta JSON
+
+```json
+{
+  "mensaje": "Beneficio aplicado exitosamente a la matrícula",
+  "data": {
+    "matricula_id": "MAT-2026-054",
+    "beneficio_id": "BEN-CONV-01",
+    "valor_matricula_original": 3200000.0,
+    "porcentaje_descuento": 25.0,
+    "valor_descuento": 800000.0,
+    "valor_final_a_pagar": 2400000.0,
+    "estado_matricula": "BENEFICIO_APLICADO"
+  },
+  "success": true
+}
+```
+
+- [ ] Si el beneficio no puede aplicarse por inconsistencia de condiciones, el backend retorna:
+
+```json
+{
+  "mensaje": "No fue posible aplicar el beneficio a la matrícula indicada",
+  "data": {
+    "matricula_id": "MAT-2026-054",
+    "motivo": "El beneficio ya fue aplicado previamente o no se encuentra vigente"
+  },
+  "success": false
+}
+```
+
+## 🧪 Requisitos de Pruebas
+
+## 🔍 Casos de Prueba Funcional
+
+### ✅ Caso 1: Aplicación correcta de descuento porcentual
+
+- **Precondición:** La matrícula 'MAT-2026-054' tiene valor de $ 3.200.000 y el beneficio descuenta el 25 %.
+- **Acción:** Ejecutar POST `/api/matriculas/MAT-2026-054/beneficios` con `{ "beneficioId": "BEN-CONV-01" }`.
+- **Resultado esperado:**
+  - Código HTTP 200 OK
+  - Campo `valor_descuento` es igual a `800000.0`
+  - Campo `valor_final_a_pagar` es igual a `2400000.0`
+  - Campo `estado_matricula` es `"BENEFICIO_APLICADO"`
+
+### ✅ Caso 2: Intento de reaplicación de beneficio ya asociado
+
+- **Precondición:** La matrícula ya tiene aplicado el beneficio 'BEN-CONV-01'.
+- **Acción:** Ejecutar nuevamente POST con el mismo identificador de beneficio.
+- **Resultado esperado:**
+  - Código HTTP 409 Conflict
+  - Campo `mensaje` contiene: "No fue posible aplicar el beneficio a la matrícula indicada"
+  - Campo `motivo` especifica la duplicidad del beneficio
+
+### ✅ Caso 3: Validación de campos numéricos y liquidación
+
+- **Precondición:** Ejecución exitosa de la aplicación de beneficio.
+- **Resultado esperado:** La respuesta JSON debe contener exactamente:
+  - "matricula_id" (texto)
+  - "valor_matricula_original" (número decimal)
+  - "porcentaje_descuento" (número decimal)
+  - "valor_descuento" (número decimal)
+  - "valor_final_a_pagar" (número decimal)
+  - "success" (booleano)
+
+### ❌ Caso 4: Matrícula en estado que no permite modificaciones
+
+- **Precondición:** La matrícula se encuentra en estado 'FORMALIZADA' o 'CANCELADA'.
+- **Acción:** Ejecutar POST para intentar aplicar descuento sobre matrícula cerrada.
+- **Resultado esperado:**
+  - Código HTTP 400 Bad Request
+  - Campo `mensaje` contiene: "La matrícula no se encuentra en estado modificable para aplicar beneficios"
+  - Campo `success` es `false`
+
+### ❌ Caso 5: Error de conexión con la base de datos de liquidaciones
+
+- **Precondición:** El servicio de liquidación no logra comunicarse con la base de datos.
+- **Acción:** Ejecutar el endpoint bajo fallo del servidor.
+- **Resultado esperado:**
+  - Código HTTP 503 Service Unavailable
+  - Campo `mensaje` contiene: "No fue posible aplicar el beneficio a la matrícula"
+  - Campo `success` es `false`
+
+## ✅ Definición de Hecho
+
+# Historia: Aplicar beneficio a matrícula
+
+## 📦 Alcance Funcional
+
+- [ ] El endpoint descuenta con exactitud el valor monetario correspondiente al beneficio.
+- [ ] La matrícula queda actualizada en el sistema con el nuevo saldo a pagar.
+- [ ] La respuesta JSON cumple plenamente con el contrato del inventario.
+
+## 🧪 Pruebas Completadas
+
+- [ ] Se ejecutaron pruebas unitarias para validar las operaciones de liquidación financiera.
+- [ ] Se cubrieron casos de beneficios duplicados, matrículas cerradas y beneficios inactivos.
+- [ ] Las pruebas funcionales están documentadas y pasadas.
+
+## 📄 Documentación Técnica
+
+- [ ] Endpoint documentado en Swagger / OpenAPI.
+- [ ] Se describe:
+  - Propósito del endpoint
+  - Campos de entrada y salida
+  - Ejemplo de respuesta exitosa
+  - Ejemplo de error  
+
+## 🔐 Manejo de Errores
+
+- [ ] Se devuelve código HTTP 500 o 503 cuando ocurre una falla en el servidor de base de datos.
+- [ ] El campo `mensaje` en el JSON incluye un texto amigable y claro para el usuario técnico o frontend.
