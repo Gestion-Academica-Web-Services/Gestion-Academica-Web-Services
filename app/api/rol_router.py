@@ -12,23 +12,34 @@ service = RolService(repo)
 @router.post("/roles", response_model=AsignarRolResponse, status_code=status.HTTP_200_OK)
 def asignar_rol(
     datos: AsignarRolRequest,
-    x_rol_solicitante: str = Header(default="admin", alias="X-Rol-Solicitante", description="Rol del usuario que realiza la petición (ej. admin)")
+    x_rol_solicitante: str = Header(default="admin", alias="X-Rol-Solicitante", description="Rol del usuario solicitante")
 ):
     try:
-        resultado = service.asignar_rol(datos.usuario_id, datos.rol, x_rol_solicitante)
-        return resultado
+        return service.asignar_rol(datos.usuario_id, datos.rol, x_rol_solicitante)
     except PermissionError as e:
         return JSONResponse(
             status_code=status.HTTP_403_FORBIDDEN,
-            content={"mensaje": str(e)}
+            content={
+                "mensaje": str(e),
+                "data": None,
+                "success": False
+            }
         )
     except KeyError as e:
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
-            content={"mensaje": str(e).strip("'")}
+            content={
+                "mensaje": str(e).strip("'"),
+                "data": None,
+                "success": False
+            }
         )
     except ValueError as e:
         return JSONResponse(
             status_code=status.HTTP_400_BAD_REQUEST,
-            content={"mensaje": str(e)}
+            content={
+                "mensaje": str(e),
+                "data": None,
+                "success": False
+            }
         )
