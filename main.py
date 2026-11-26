@@ -6,6 +6,7 @@ from app.api.rol_router import router as rol_router
 from app.api.matricula_router import router as matricula_router
 from app.api.estado_usuario_router import router as estado_usuario_router
 from app.api.perfil_router import router as perfil_router
+from app.api.requisitos_programa_router import router as requisitos_programa_router
 
 app = FastAPI(
     title="Gestion Academica API",
@@ -13,6 +14,7 @@ app = FastAPI(
     description="API desarrollada bajo arquitectura de capas"
 )
 
+# Registro de routers por módulo
 app.include_router(usuario_router)
 app.include_router(programa_router)
 app.include_router(autenticacion_router)
@@ -20,6 +22,7 @@ app.include_router(rol_router)
 app.include_router(matricula_router)
 app.include_router(estado_usuario_router)
 app.include_router(perfil_router)
+app.include_router(requisitos_programa_router)
 
 @app.get("/health", tags=["Health Check"])
 def health_check():
