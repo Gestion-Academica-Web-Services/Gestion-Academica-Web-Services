@@ -8,6 +8,7 @@ from app.api.estado_usuario_router import router as estado_usuario_router
 from app.api.perfil_router import router as perfil_router
 from app.api.requisitos_programa_router import router as requisitos_programa_router
 from app.api.cursos_programa_router import router as cursos_programa_router
+from app.api.grupos_cupos_router import router as grupos_cupos_router
 
 app = FastAPI(
     title="Gestion Academica API",
@@ -24,6 +25,7 @@ app.include_router(estado_usuario_router)
 app.include_router(perfil_router)
 app.include_router(requisitos_programa_router)
 app.include_router(cursos_programa_router)
+app.include_router(grupos_cupos_router)
 
 @app.get("/health", tags=["Health Check"])
 def health_check():
